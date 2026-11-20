@@ -1262,7 +1262,6 @@ func (s *Service) resolve(id duxlyrics.Provider) (duxlyrics.Source, bool) {
 	}
 	return duxlyrics.Source{
 		Attribution: duxlyrics.Attribution{Name: src.Library().Name},
-		WordSync:    false,
 		Fetch: func(ctx context.Context, _ duxlyrics.Request) (*duxlyrics.Lyrics, error) {
 			l, err := sl.Lyrics(ctx, track)
 			if err == nil && l == nil {
