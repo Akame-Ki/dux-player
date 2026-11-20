@@ -2,6 +2,7 @@ package jellyfin
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/url"
@@ -84,4 +85,30 @@ func (s *Source) QuickConnectFinish(ctx context.Context, secret string) (string,
 		s.client.onToken(res.AccessToken, res.User.ID, user)
 	}
 	return user, nil
+}
+
+// Probe reads the public server info, which needs no sign-in.
+func (s *Source) Probe(ctx context.Context) (source.ProbeResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, source.ProbeTimeout)
+	defer cancel()
+	var info struct {
+		ID, ProductName, Version string
+	}
+	err := s.client.do(ctx, http.MethodGet, "/System/Info/Public", nil, nil, &info, "")
+	var he *httpError
+	var syn *json.SyntaxError
+	var typ *json.UnmarshalTypeError
+	switch {
+	case errors.As(err, &he), errors.As(err, &syn), errors.As(err, &typ), errors.Is(err, ErrUnauthorized):
+		return source.ProbeResult{}, source.ErrNotRecognized
+	case err != nil:
+		return source.ProbeResult{}, err
+	case info.ID == "" && info.Version == "":
+		return source.ProbeResult{}, source.ErrNotRecognized
+	}
+	res := source.ProbeResult{Type: info.ProductName, Version: info.Version}
+	if on, err := s.QuickConnectEnabled(ctx); err == nil {
+		res.QuickConnect = &on
+	}
+	return res, nil
 }

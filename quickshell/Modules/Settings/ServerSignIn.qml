@@ -24,6 +24,12 @@ Column {
     // submit() waits for the connection test it started
     property bool savePending: false
     property int testTicket: 0
+    // a new server's address is checked first: "address" | "checking" | "error" | "form"
+    property string stage: "address"
+    property string probeMessage: ""
+    // what the check said of Quick Connect; undefined when it didn't say
+    property var probedQuick: undefined
+    property int probeTicket: 0
 
     readonly property bool editing: libraryId !== ""
     readonly property var library: editing ? PlayerService.library(libraryId) : null
@@ -35,15 +41,20 @@ Column {
     // a library that signs in with a code has no password to ask for, until its sign-in expires
     readonly property bool codeLibrary: editing && library?.auth === "quickConnect"
     readonly property bool signInExpired: editing && library?.errorCode === "signInExpired"
-    readonly property bool quickOffered: editing ? (library?.capabilities ?? []).indexOf("quickConnect") >= 0 && url === (library?.url ?? "") : CatalogService.quickConnectKinds.indexOf(kind) >= 0
+    // a new server shows only its address until the check passes or is skipped
+    readonly property bool atAddress: !editing && stage !== "form"
+    readonly property bool checking: stage === "checking"
+    readonly property bool quickOffered: editing ? (library?.capabilities ?? []).indexOf("quickConnect") >= 0 && url === (library?.url ?? "") : CatalogService.quickConnectKinds.indexOf(kind) >= 0 && probedQuick !== false
     readonly property bool quickMode: quickOffered && method === "quickConnect"
-    readonly property bool passwordForm: !quickMode
+    readonly property bool passwordForm: !quickMode && !atAddress
     readonly property bool keepsPassword: editing && passwordField.text === "" && !noPassword.checked
     // a login is tested before it is saved, unless the saved password is kept
     readonly property bool needsTest: testState !== "ok" && !keepsPassword
     readonly property bool quickBusy: quickMode && ["requesting", "waiting", "approved"].indexOf(quickState) >= 0
     readonly property bool valid: blocker === "" && !quickMode
     readonly property string blocker: {
+        if (atAddress)
+            return url === "" ? I18n.tr("Enter the server address.", "Quick Connect state before a code can be asked for") : "";
         if (codeLibrary && keepsPassword)
             return I18n.tr("Enter the password.", "edit server dialog, why save is disabled");
         if (url === "" || user === "")
@@ -63,9 +74,7 @@ Column {
         userField.text = account;
         passwordField.text = "";
         noPassword.checked = false;
-        method = "password";
-        CatalogService.cancelQuickConnect();
-        invalidateTest();
+        backToAddress();
         testMessage = "";
         if (signInExpired && codeLibrary && quickOffered)
             selectMethod("quickConnect");
@@ -75,6 +84,43 @@ Column {
         passwordField.text = "";
         invalidateTest();
         CatalogService.cancelQuickConnect();
+    }
+
+    // Back to the address step: the check no longer holds, and a running one is dropped.
+    function backToAddress() {
+        probeTicket++;
+        stage = "address";
+        probeMessage = "";
+        probedQuick = undefined;
+        method = "password";
+        CatalogService.cancelQuickConnect();
+        invalidateTest();
+    }
+
+    function check() {
+        if (url === "" || checking)
+            return;
+        stage = "checking";
+        const ticket = ++probeTicket;
+        PlayerService.probeServer(kind, url, r => {
+            if (ticket !== probeTicket || !checking)
+                return;
+            if (r.error) {
+                probeMessage = Phrases.reason(r.code, r.error);
+                stage = "error";
+                return;
+            }
+            probedQuick = r.quickConnect;
+            stage = "form";
+            userField.forceActiveFocus();
+        });
+    }
+
+    function skipCheck() {
+        probeTicket++;
+        probedQuick = undefined;
+        stage = "form";
+        userField.forceActiveFocus();
     }
 
     function focusFirst() {
@@ -111,6 +157,10 @@ Column {
     function submit() {
         if (!valid || testState === "testing")
             return;
+        if (atAddress) {
+            check();
+            return;
+        }
         if (needsTest) {
             savePending = true;
             runTest();
@@ -131,11 +181,7 @@ Column {
     }
 
     width: parent?.width ?? 0
-    onKindChanged: {
-        invalidateTest();
-        method = "password";
-        CatalogService.cancelQuickConnect();
-    }
+    onKindChanged: backToAddress()
     Component.onDestruction: CatalogService.cancelQuickConnect()
 
     Connections {
@@ -168,8 +214,10 @@ Column {
         labelText: I18n.tr("Server address", "add server dialog field")
         placeholderText: I18n.tr("https://music.example.net", "example server address in the add server dialog")
         leftIconName: "dns"
-        enabled: !root.quickBusy
+        enabled: !root.quickBusy && !root.checking
         onTextChanged: {
+            if (!root.editing && root.stage !== "address")
+                root.backToAddress();
             root.invalidateTest();
             root.edited();
             if (["off", "failed", "expired"].indexOf(root.quickState) >= 0)
@@ -177,8 +225,17 @@ Column {
         }
     }
 
+    StyledText {
+        width: parent.width
+        visible: root.stage === "error"
+        text: root.probeMessage
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.error
+        wrapMode: Text.WordWrap
+    }
+
     DButtonGroup {
-        visible: root.quickOffered
+        visible: root.quickOffered && !root.atAddress
         model: [
             {
                 "text": I18n.tr("Password", "add server dialog field"),

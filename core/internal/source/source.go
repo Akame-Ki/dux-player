@@ -422,6 +422,27 @@ type Pinger interface {
 	Ping(ctx context.Context) (ServerInfo, error)
 }
 
+// ProbeTimeout bounds an address check, which runs while the user waits.
+const ProbeTimeout = 5 * time.Second
+
+// ErrNotRecognized is an address that answered, but not like this kind of server.
+var ErrNotRecognized = errors.New("the address doesn't answer like this kind of server")
+
+// ProbeResult is what an address check learned without signing in.
+type ProbeResult struct {
+	Type    string `json:"type,omitempty"`
+	Version string `json:"version,omitempty"`
+	// QuickConnect is nil when the server doesn't say.
+	QuickConnect *bool `json:"quickConnect,omitempty"`
+}
+
+// Prober checks that the server address answers like this kind of server,
+// before any credentials exist. It fails with ErrNotRecognized when something
+// else answers.
+type Prober interface {
+	Probe(ctx context.Context) (ProbeResult, error)
+}
+
 // SignInReporter is a source that learns from its own calls that the server
 // refused the sign-in, so the manager can look again.
 type SignInReporter interface {

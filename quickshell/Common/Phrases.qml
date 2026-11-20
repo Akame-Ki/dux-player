@@ -216,6 +216,8 @@ Singleton {
             return I18n.tr("Enter the user name and password in their own fields, not in the server address", "why a server connection test failed");
         case "redirected":
             return I18n.tr("The server redirected to another address. Use that address instead.", "why a server connection test failed");
+        case "notRecognized":
+            return I18n.tr("That address isn't a server of this type", "why a server address check failed");
         case "testFailed":
             return I18n.tr("Couldn't connect to this server", "why a server connection test failed");
         case "daemonDisconnected":

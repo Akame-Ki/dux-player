@@ -77,7 +77,7 @@ WindowDialog {
 
     maximumHeight: parent ? parent.height - Theme.spacingXL * 2 : Infinity
     title: I18n.tr("Add library", "libraries settings primary action")
-    acceptEnabled: valid && signIn.testState !== "testing"
+    acceptEnabled: valid && signIn.testState !== "testing" && !signIn.checking
     onAccepted: save()
     onRejected: opened = false
     onOpenedChanged: {
@@ -96,14 +96,18 @@ WindowDialog {
                 }))
         currentIndex: root.kinds.indexOf(root.kind)
         onSelectionChanged: (index, selected) => {
-            if (selected)
-                root.kind = root.kinds[index];
+            if (!selected)
+                return;
+            root.kind = root.kinds[index];
+            if (root.remote)
+                signIn.focusFirst();
         }
     }
 
     DTextField {
         id: nameField
         width: parent.width
+        visible: !(root.remote && signIn.atAddress)
         enabled: !signIn.quickBusy
         outlined: true
         labelText: root.remote ? I18n.tr("Name (optional)", "library dialog field") : I18n.tr("Name", "a name: field label, sort key")
@@ -248,10 +252,18 @@ WindowDialog {
             onClicked: root.rejected()
         },
         DButton {
-            text: I18n.tr("Add", "dialog confirm button")
+            text: I18n.tr("Continue anyway", "add server dialog, goes on without a successful address check")
+            visible: root.remote && signIn.stage === "error"
+            backgroundColor: "transparent"
+            textColor: Theme.primary
+            onClicked: signIn.skipCheck()
+        },
+        DButton {
+            text: !(root.remote && signIn.atAddress) ? I18n.tr("Add", "dialog confirm button") : signIn.stage === "error" ? I18n.tr("Try again", "library action that checks an unavailable library again") : I18n.tr("Continue", "add server dialog, checks the address")
+            reserveText: I18n.tr("Try again", "library action that checks an unavailable library again")
             visible: !(root.remote && signIn.quickMode)
-            enabled: root.valid && signIn.testState !== "testing"
-            busy: signIn.savePending
+            enabled: root.valid && signIn.testState !== "testing" && !signIn.checking
+            busy: signIn.savePending || signIn.checking
             onClicked: root.save()
         }
     ]

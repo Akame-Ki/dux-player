@@ -1134,6 +1134,9 @@ Singleton {
     function testServer(kind, url, user, password, ticket) {
         CatalogService.testServer(kind, url, user, password, ticket);
     }
+    function probeServer(kind, url, done) {
+        CatalogService.probeServer(kind, url, done);
+    }
     function addServerLibrary(kind, name, url, user, password) {
         CatalogService.addServerLibrary(kind, name, url, user, password);
     }

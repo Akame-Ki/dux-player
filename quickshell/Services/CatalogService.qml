@@ -549,6 +549,14 @@ Singleton {
         }, info => root.serverTestFinished(!info.error, info.error ? Phrases.reason(info.code, info.error) : "", ticket));
     }
 
+    // done gets the daemon's reply: {type, version, quickConnect?} or {error, code}
+    function probeServer(kind, url, done) {
+        DaemonBridge.call("libraries.probe", {
+            "kind": kind,
+            "url": url
+        }, done);
+    }
+
     function addServerLibrary(kind, name, url, user, password) {
         DaemonBridge.request("libraries.add", {
             "kind": kind,

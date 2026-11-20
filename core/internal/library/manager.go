@@ -78,6 +78,7 @@ const (
 	CodeCredentialsInAddress = "credentialsInAddress"
 	CodeRedirected           = "redirected"
 	CodeTestFailed           = "testFailed"
+	CodeNotRecognized        = "notRecognized"
 	CodeQuickConnectOff      = "quickConnectOff"
 	// CodeScanFailed is the code of a scanFailed event.
 	CodeScanFailed = "scanFailed"
@@ -1277,6 +1278,38 @@ func (m *Manager) Test(ctx context.Context, kind string, config map[string]any, 
 		return info, testFailure(err)
 	}
 	return info, nil
+}
+
+// ProbeAddress checks a server address before any sign-in exists. The placeholder
+// user only satisfies the factories; Probe never sends it.
+func (m *Manager) ProbeAddress(ctx context.Context, kind, addr string) (source.ProbeResult, error) {
+	if _, ok := m.registry[kind]; !ok {
+		return source.ProbeResult{}, fmt.Errorf("unknown library kind %q (known: %s)", kind, strings.Join(m.Kinds(), ", "))
+	}
+	dir, err := os.MkdirTemp("", "dplayer-probe-")
+	if err != nil {
+		return source.ProbeResult{}, err
+	}
+	defer os.RemoveAll(dir)
+	lib := source.Library{ID: "probe-" + source.NewID(), Kind: kind, Name: "probe", Enabled: true,
+		Config: map[string]any{"url": addr, "username": "probe"}}
+	src, err := m.registry.Build(lib, source.Env{Secrets: overlay{nil, map[string]string{"password": ""}}, CacheDir: dir, Version: m.env.Version})
+	if err != nil {
+		return source.ProbeResult{}, testFailure(err)
+	}
+	defer src.Close()
+	p, ok := src.(source.Prober)
+	if !ok {
+		return source.ProbeResult{}, fmt.Errorf("a %s library has no server to check", kind)
+	}
+	res, err := p.Probe(ctx)
+	if errors.Is(err, source.ErrNotRecognized) {
+		return res, Reason{CodeNotRecognized, "That address isn't a server of this type"}
+	}
+	if err != nil {
+		return res, testFailure(err)
+	}
+	return res, nil
 }
 
 // overlay serves the given secrets first and keeps writes in memory, so a

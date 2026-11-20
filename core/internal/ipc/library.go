@@ -36,6 +36,7 @@ func RegisterLibraries(r *Registry, d *Deps) {
 		MethodSpec{Name: "libraries.retry", Desc: "Check an unavailable library again now", Params: []ParamSpec{Req("library", "")}},
 		MethodSpec{Name: "libraries.quickConnect", Desc: "Request a Quick Connect code for a new library (kind, url, name) or to sign in again to one (library); the library is added or updated once the code is approved, reported by a quickConnect event", Params: []ParamSpec{Opt("library", "sign in again to this library"), Opt("kind", "a server kind from libraries.kinds"), Opt("url", ""), Opt("name", "")}},
 		MethodSpec{Name: "libraries.quickConnectCancel", Desc: "Stop waiting for a Quick Connect approval", Params: []ParamSpec{Req("session", "from libraries.quickConnect")}},
+		MethodSpec{Name: "libraries.probe", Desc: "Check that a server address answers like the kind, without signing in", Params: []ParamSpec{Req("kind", "a server kind from libraries.kinds"), Req("url", "")}, Read: true},
 		MethodSpec{Name: "libraries.test", Desc: "Ping a server without adding it", Params: []ParamSpec{Req("kind", "a server kind from libraries.kinds"), Req("url", ""), Opt("username", ""), Opt("password", ""), Opt("auth", "(Open)Subsonic: auto|token|password|apiKey")}, Read: true},
 	)
 	r.Group("browse", func(ctx context.Context, w *ConnWriter, req Request) { handleBrowse(ctx, w, req, *d) },
@@ -128,6 +129,8 @@ func handleLibraries(ctx context.Context, w *ConnWriter, req Request, deps Deps)
 	case "libraries.quickConnectCancel":
 		deps.Libraries.QuickConnectCancel(Str(p, "session"))
 		ReplyOK(w, req.ID, nil)
+	case "libraries.probe":
+		Reply(w, req.ID)(deps.Libraries.ProbeAddress(ctx, Str(p, "kind"), Str(p, "url")))
 	case "libraries.test":
 		config, secrets := libraryParams(p, true)
 		Reply(w, req.ID)(deps.Libraries.Test(ctx, Str(p, "kind"), config, secrets))

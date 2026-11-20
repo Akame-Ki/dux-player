@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"net/url"
 	"path/filepath"
 	"slices"
@@ -40,6 +41,7 @@ var (
 	_ source.Playlists         = (*Source)(nil)
 	_ source.PlaylistEditor    = (*Source)(nil)
 	_ source.Pinger            = (*Source)(nil)
+	_ source.Prober            = (*Source)(nil)
 	_ source.Favorites         = (*Source)(nil)
 	_ source.Ratings           = (*Source)(nil)
 	_ source.RandomTracks      = (*Source)(nil)
@@ -83,6 +85,42 @@ func (s *Source) Ping(ctx context.Context) (source.ServerInfo, error) {
 	}
 	return source.ServerInfo{Type: st.Type, APIVersion: st.Version, ServerVersion: st.ServerVersion,
 		OpenSubsonic: st.OpenSubsonic, Extensions: st.Extensions, Auth: st.Auth}, nil
+}
+
+// Probe sends ping with no credentials. An error reply such as a wrong
+// password still proves a Subsonic server.
+func (s *Source) Probe(ctx context.Context) (source.ProbeResult, error) {
+	ctx, cancel := context.WithTimeout(ctx, source.ProbeTimeout)
+	defer cancel()
+	u := *s.client.base
+	u.Path += "/rest/ping.view"
+	u.RawQuery = url.Values{"v": {apiVersion}, "c": {clientName}, "f": {"json"}}.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return source.ProbeResult{}, errors.New("ping: build request")
+	}
+	resp, err := s.client.http.Do(req)
+	if err != nil {
+		var ue *url.Error
+		if errors.As(err, &ue) {
+			err = ue.Err
+		}
+		return source.ProbeResult{}, fmt.Errorf("ping: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return source.ProbeResult{}, source.ErrNotRecognized
+	}
+	body, err := source.ReadCapped(resp.Body, 1<<20)
+	if err != nil {
+		return source.ProbeResult{}, fmt.Errorf("ping: read response: %w", err)
+	}
+	env, err := decode("ping", body, nil)
+	var api *APIError
+	if err != nil && !errors.As(err, &api) {
+		return source.ProbeResult{}, source.ErrNotRecognized
+	}
+	return source.ProbeResult{Type: env.Type, Version: env.ServerVersion}, nil
 }
 
 // needs maps capabilities to the calls they rely on; a server that
