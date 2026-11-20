@@ -14,6 +14,7 @@ var (
 
 func main() {
 	log.SetEnvPrefix("DPLAYER")
+	log.SetPrefix("dplayer")
 	if err := rootCmd.Execute(); err != nil {
 		log.Errorf("%v", err)
 		os.Exit(1)

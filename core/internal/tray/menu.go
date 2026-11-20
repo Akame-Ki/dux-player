@@ -25,8 +25,7 @@ const (
 
 var errUnknownID = errors.New("no such menu item")
 
-// defaultLabels are the menu's texts. The daemon has no translations; a UI
-// can replace them by key once it pushes its own.
+// defaultLabels are the menu's texts; the daemon has no translations.
 var defaultLabels = map[string]string{
 	"open": "Open Dux Player", "play": "Play", "pause": "Pause",
 	"next": "Next", "previous": "Previous", "quit": "Quit Dux Player",
@@ -54,21 +53,21 @@ type menuEvent struct {
 // items returns the menu entries' properties in order.
 func (t *Tray) items() []itemProps {
 	t.mu.Lock()
-	toggle := t.labels["play"]
+	toggle := defaultLabels["play"]
 	if t.playing {
-		toggle = t.labels["pause"]
+		toggle = defaultLabels["pause"]
 	}
 	t.mu.Unlock()
 	label := func(id int32, text string) itemProps {
 		return itemProps{id, map[string]dbus.Variant{"label": dbus.MakeVariant(text)}}
 	}
 	return []itemProps{
-		label(idOpen, t.labels["open"]),
+		label(idOpen, defaultLabels["open"]),
 		label(idToggle, toggle),
-		label(idNext, t.labels["next"]),
-		label(idPrevious, t.labels["previous"]),
+		label(idNext, defaultLabels["next"]),
+		label(idPrevious, defaultLabels["previous"]),
 		{idSeparator, map[string]dbus.Variant{"type": dbus.MakeVariant("separator")}},
-		label(idQuit, t.labels["quit"]),
+		label(idQuit, defaultLabels["quit"]),
 	}
 }
 

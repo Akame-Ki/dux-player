@@ -85,15 +85,6 @@ Singleton {
     readonly property bool blurEnabled: fromShell.effects ? shell.value("blurEnabled", false) : SettingsData.blurEnabled
     readonly property real blurLayerOutlineOpacity: fromShell.effects ? shell.value("blurLayerOutlineOpacity", 0) : 0
 
-    // freedesktop icon theme for app icons; the player shows none yet
-    readonly property string iconTheme: {
-        if (!following)
-            return "";
-        const light = themeMode === "light" && shell.value("iconThemePerMode", false);
-        const name = shell.value(light ? "iconThemeLight" : "iconThemeDark", "System Default");
-        return name === "System Default" ? "" : name;
-    }
-
     // What DCommon reads through DC.Style.settings
     readonly property bool popoutElevationEnabled: elevationEnabled
     readonly property bool scrollbarsEnabled: following ? shell.value("scrollbarsEnabled", true) : true

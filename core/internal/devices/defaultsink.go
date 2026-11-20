@@ -49,10 +49,15 @@ func (d *defaultSink) lost(id string) bool {
 }
 
 // watch runs until ctx ends, starting pw-metadata again if PipeWire restarts.
+// A failure is logged once, and again only after pw-metadata worked in between.
 func (d *defaultSink) watch(ctx context.Context) {
+	warned := false
 	for ctx.Err() == nil {
-		if err := d.follow(ctx); err != nil && ctx.Err() == nil {
+		worked, err := d.follow(ctx)
+		warned = warned && !worked
+		if err != nil && ctx.Err() == nil && !warned {
 			log.Warnf("devices: following the default output: %v", err)
+			warned = true
 		}
 		select {
 		case <-ctx.Done():
@@ -61,20 +66,22 @@ func (d *defaultSink) watch(ctx context.Context) {
 	}
 }
 
-func (d *defaultSink) follow(ctx context.Context) error {
+// follow reports whether it saw the default output before it ended.
+func (d *defaultSink) follow(ctx context.Context) (worked bool, err error) {
 	cmd := exec.CommandContext(ctx, "pw-metadata", "-n", "default", "-m")
 	out, err := cmd.StdoutPipe()
 	if err != nil {
-		return err
+		return false, err
 	}
 	if err := cmd.Start(); err != nil {
-		return err
+		return false, err
 	}
 	lines := bufio.NewScanner(out)
 	for lines.Scan() {
 		if name := defaultSinkIn(lines.Text()); name != "" {
 			d.set(name)
+			worked = true
 		}
 	}
-	return cmd.Wait()
+	return worked, cmd.Wait()
 }

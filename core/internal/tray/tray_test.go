@@ -22,7 +22,7 @@ func (f fakePlayer) SetVolume(_ context.Context, v float64, rel bool) error {
 
 func newTestTray() (*Tray, chan string) {
 	calls := make(chan string, 4)
-	t := &Tray{ctx: context.Background(), labels: defaultLabels, cfg: Config{
+	t := &Tray{ctx: context.Background(), cfg: Config{
 		Player: fakePlayer{calls},
 		Show:   func() { calls <- "show" },
 		Quit:   func() { calls <- "quit" },

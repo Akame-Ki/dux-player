@@ -70,7 +70,7 @@ func TestParseMessage(t *testing.T) {
 // between: each caller must get its own reply and the event must queue.
 func TestConnMatchesRepliesByRequestID(t *testing.T) {
 	client, server := net.Pipe()
-	c := newConn(client)
+	c := newConn(client, "mpv")
 	defer c.close()
 
 	go func() {
@@ -125,7 +125,7 @@ func TestConnMatchesRepliesByRequestID(t *testing.T) {
 
 func TestConnFailsPendingCommandsWhenMPVGoesAway(t *testing.T) {
 	client, server := net.Pipe()
-	c := newConn(client)
+	c := newConn(client, "mpv")
 	go func() {
 		_, _ = bufio.NewReader(server).ReadBytes('\n')
 		server.Close()

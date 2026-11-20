@@ -40,8 +40,9 @@ type Config struct {
 type Launcher struct {
 	cfg Config
 
-	mu   sync.Mutex
-	proc *os.Process
+	mu       sync.Mutex
+	proc     *os.Process
+	starting bool // a Start is between its check and having a process
 }
 
 func New(cfg Config) *Launcher { return &Launcher{cfg: cfg} }
@@ -90,10 +91,17 @@ func (l *Launcher) ResolveDir(dir string) (string, bool, error) {
 // has no UI of its own, takes any.
 func (l *Launcher) Start(dir string) (bool, error) {
 	l.mu.Lock()
-	defer l.mu.Unlock()
-	if l.proc != nil {
+	if l.proc != nil || l.starting {
+		l.mu.Unlock()
 		return false, nil
 	}
+	l.starting = true
+	l.mu.Unlock()
+	defer func() {
+		l.mu.Lock()
+		l.starting = false
+		l.mu.Unlock()
+	}()
 	if env := os.Getenv("DPLAYER_SHELL_DIR"); dir != "" && shellembed.Available() && filepath.Clean(dir) != filepath.Clean(env) {
 		return false, errors.New("the running daemon opens only its own UI; quit it (dplayer quit) and start it with -c to use another")
 	}
@@ -115,7 +123,9 @@ func (l *Launcher) Start(dir string) (bool, error) {
 		logFile.Close()
 		return false, fmt.Errorf("start the UI (qs): %w", err)
 	}
+	l.mu.Lock()
 	l.proc = cmd.Process
+	l.mu.Unlock()
 	log.Infof("UI started (pid=%d, dir=%s)", cmd.Process.Pid, dir)
 	go func() {
 		err := cmd.Wait()

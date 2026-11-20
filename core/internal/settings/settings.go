@@ -261,7 +261,7 @@ func (s *Store) Set(changes map[string]any) (Settings, error) {
 		return s.cur, err
 	}
 	for k, v := range fields {
-		raw[k] = v
+		raw[k] = mergeObject(raw[k], v)
 	}
 	data, err := json.MarshalIndent(raw, "", "  ")
 	if err != nil {
@@ -272,6 +272,23 @@ func (s *Store) Set(changes map[string]any) (Settings, error) {
 	}
 	s.cur, s.raw = next, raw
 	return next, nil
+}
+
+// mergeObject lays the known fields over the object already in the file, so
+// keys a newer version wrote inside it survive. Anything else is replaced.
+func mergeObject(old, next json.RawMessage) json.RawMessage {
+	var oldFields, nextFields map[string]json.RawMessage
+	if json.Unmarshal(old, &oldFields) != nil || json.Unmarshal(next, &nextFields) != nil || oldFields == nil || nextFields == nil {
+		return next
+	}
+	for k, v := range nextFields {
+		oldFields[k] = mergeObject(oldFields[k], v)
+	}
+	merged, err := json.Marshal(oldFields)
+	if err != nil {
+		return next
+	}
+	return merged
 }
 
 // DropLibrary takes a deleted library out of the skip rules; false when it

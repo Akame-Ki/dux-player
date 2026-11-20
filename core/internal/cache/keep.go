@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 
+	"github.com/Conava/dux-player/core/internal/keyring"
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/duxlabs-dev/dux-go/log"
 )
@@ -21,6 +22,9 @@ func (c *Cache) Keep(ctx context.Context, refs []source.Ref, keep bool) error {
 	byLibrary := map[string][]string{}
 	for _, ref := range refs {
 		if _, _, ok := c.rules(ctx, ref.Library); !ok {
+			if _, err := c.cfg.Libraries.Get(ref.Library); errors.Is(err, keyring.ErrLocked) {
+				return fmt.Errorf("library %s: the system keyring is locked", ref.Library)
+			}
 			return fmt.Errorf("library %s can't keep tracks on this device", ref.Library)
 		}
 		byLibrary[ref.Library] = append(byLibrary[ref.Library], ref.ID)

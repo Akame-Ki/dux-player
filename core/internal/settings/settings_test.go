@@ -209,3 +209,24 @@ func TestContinueSettings(t *testing.T) {
 	assert.Equal(t, "adventurous", got.SimilarTracks)
 	assert.Equal(t, 50, got.ContinueTracks)
 }
+
+func TestSetKeepsUnknownKeysInsideNestedSettings(t *testing.T) {
+	for _, key := range []string{"equalizer", "crossfade"} {
+		dir := t.TempDir()
+		path := filepath.Join(dir, FileName)
+		require.NoError(t, os.WriteFile(path, []byte(`{"`+key+`":{"fromTheFuture":7}}`), 0o644))
+		s, err := Open(dir)
+		require.NoError(t, err)
+
+		_, err = s.Set(map[string]any{key: map[string]any{"enabled": true}})
+		require.NoError(t, err)
+
+		var onDisk map[string]any
+		data, err := os.ReadFile(path)
+		require.NoError(t, err)
+		require.NoError(t, json.Unmarshal(data, &onDisk))
+		nested := onDisk[key].(map[string]any)
+		assert.Equal(t, 7.0, nested["fromTheFuture"], key)
+		assert.Equal(t, true, nested["enabled"], key)
+	}
+}

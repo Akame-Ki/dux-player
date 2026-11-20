@@ -88,6 +88,9 @@ type conn struct {
 	writeM sync.Mutex
 	nextID atomic.Int64
 
+	// backend names the peer in errors: "mpv" or "the built-in player".
+	backend string
+
 	mu      sync.Mutex
 	pending map[int64]chan message
 	closed  bool
@@ -100,9 +103,10 @@ type conn struct {
 	err    error
 }
 
-func newConn(nc net.Conn) *conn {
+func newConn(nc net.Conn, backend string) *conn {
 	c := &conn{
 		nc:      nc,
+		backend: backend,
 		pending: make(map[int64]chan message),
 		notify:  make(chan struct{}, 1),
 		done:    make(chan struct{}),
@@ -133,7 +137,7 @@ func (c *conn) readLoop() {
 	}
 	err := sc.Err()
 	if err == nil {
-		err = errors.New("mpv closed the connection")
+		err = fmt.Errorf("%s closed the connection", c.backend)
 	}
 	c.shutdown(err)
 }
@@ -256,7 +260,7 @@ func startBuiltin(ctx context.Context, env []string) (*process, error) {
 			log.Debugf("built-in player stopped: %v", p.exitErr)
 		}
 	}()
-	p.conn = newConn(b)
+	p.conn = newConn(b, "the built-in player")
 	if _, err := p.conn.command(ctx, "get_property", "mpv-version"); err != nil {
 		p.kill()
 		return nil, fmt.Errorf("built-in player: %w", err)
@@ -308,7 +312,7 @@ func startProcess(ctx context.Context, binary, socket string, extra, env []strin
 		p.kill()
 		return nil, err
 	}
-	p.conn = newConn(nc)
+	p.conn = newConn(nc, "mpv")
 	if _, err := p.conn.commandWithin(ctx, readyTimeout, "get_property", "mpv-version"); err != nil {
 		p.kill()
 		return nil, fmt.Errorf("mpv started but did not answer within %s: %w", readyTimeout, err)

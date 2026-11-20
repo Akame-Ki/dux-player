@@ -57,12 +57,11 @@ type Config struct {
 }
 
 type Tray struct {
-	conn   *dbus.Conn
-	props  *prop.Properties
-	cfg    Config
-	ctx    context.Context
-	name   string
-	labels map[string]string
+	conn  *dbus.Conn
+	props *prop.Properties
+	cfg   Config
+	ctx   context.Context
+	name  string
 
 	mu      sync.Mutex
 	on      bool
@@ -86,7 +85,7 @@ type toolTip struct {
 // Start exports the item and its menu on conn. It shows nothing until
 // SetEnabled(true).
 func Start(ctx context.Context, conn *dbus.Conn, cfg Config) (*Tray, error) {
-	t := &Tray{conn: conn, cfg: cfg, ctx: ctx, labels: defaultLabels,
+	t := &Tray{conn: conn, cfg: cfg, ctx: ctx,
 		name: fmt.Sprintf("org.kde.StatusNotifierItem-%d-1", os.Getpid())}
 	// A host prefers IconName, so name the icon only when the theme has it.
 	iconName := ""

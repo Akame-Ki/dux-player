@@ -17,7 +17,6 @@ Singleton {
 
     property bool connected: false
     property bool subscribed: false
-    property int apiVersion: 0
 
     property var pendingRequests: ({})
     property var topicHandlers: ({})
@@ -156,11 +155,8 @@ Singleton {
     }
 
     function _handleResponse(response) {
-        if (!response.id) {
-            if (response.apiVersion !== undefined)
-                apiVersion = response.apiVersion;
+        if (!response.id)
             return;
-        }
         const pending = pendingRequests[response.id];
         if (!pending)
             return;
