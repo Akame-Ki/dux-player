@@ -16,6 +16,7 @@ import (
 
 	"github.com/Conava/dux-player/core/internal/library"
 	"github.com/Conava/dux-player/core/internal/source"
+	"github.com/duxlabs-dev/dux-go/log"
 )
 
 // The track column is the track as it was played, so the history shows
@@ -190,12 +191,18 @@ func (s *Store) Prune(ctx context.Context, months int) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return nil
 	}
+	if err := library.Compact(ctx, s.db); err != nil {
+		log.Warnf("shrink history: %v", err)
+	}
 	return s.reload(ctx)
 }
 
 func (s *Store) Clear(ctx context.Context) error {
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM plays"); err != nil {
 		return err
+	}
+	if err := library.Compact(ctx, s.db); err != nil {
+		log.Warnf("shrink history: %v", err)
 	}
 	return s.reload(ctx)
 }

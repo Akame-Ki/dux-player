@@ -15,6 +15,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/duxlabs-dev/dux-go/log"
 	_ "modernc.org/sqlite"
 
 	"github.com/Conava/dux-player/core/internal/loudness"
@@ -203,7 +204,7 @@ func Open(ctx context.Context, path string) (*Store, error) {
 func OpenDB(ctx context.Context, path string, migrations []string) (*sql.DB, error) {
 	// Immediate transactions take the write lock up front, where busy_timeout
 	// waits for it; WAL lets the other connections read meanwhile.
-	dsn := "file:" + path + "?_pragma=journal_mode(WAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)&_txlock=immediate"
+	dsn := "file:" + path + "?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)&_txlock=immediate"
 	// SQLite gives the -wal and -shm files the database's mode.
 	if f, err := os.OpenFile(path, os.O_CREATE|os.O_RDWR, 0o600); err == nil {
 		f.Close()
@@ -220,7 +221,46 @@ func OpenDB(ctx context.Context, path string, migrations []string) (*sql.DB, err
 		db.Close()
 		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
 	}
+	// An old database still has auto_vacuum off and needs a one-time VACUUM,
+	// which can take seconds on a big one: do it after startup.
+	var mode, free int
+	if db.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode) == nil &&
+		db.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&free) == nil && (mode == 0 || free > 0) {
+		go func() {
+			if err := Compact(ctx, db); err != nil {
+				log.Warnf("shrink %s: %v", filepath.Base(path), err)
+			}
+		}()
+	}
 	return db, nil
+}
+
+// Compact gives pages freed by deletes back to the disk and empties the WAL.
+// A database from before auto_vacuum was on is rebuilt once with VACUUM, which
+// holds the write lock for the time that takes.
+func Compact(ctx context.Context, db *sql.DB) error {
+	var mode int
+	if err := db.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode); err != nil {
+		return err
+	}
+	if mode == 0 {
+		// The mode only applies at the next VACUUM, on the same connection.
+		conn, err := db.Conn(ctx)
+		if err != nil {
+			return err
+		}
+		defer conn.Close()
+		for _, q := range []string{"PRAGMA auto_vacuum = INCREMENTAL", "VACUUM"} {
+			if _, err := conn.ExecContext(ctx, q); err != nil {
+				return fmt.Errorf("%s: %w", q, err)
+			}
+		}
+	}
+	if _, err := db.ExecContext(ctx, "PRAGMA incremental_vacuum"); err != nil {
+		return fmt.Errorf("incremental vacuum: %w", err)
+	}
+	_, err := db.ExecContext(ctx, "PRAGMA wal_checkpoint(TRUNCATE)")
+	return err
 }
 
 func migrate(ctx context.Context, db *sql.DB, migrations []string) error {
@@ -648,7 +688,17 @@ func (b *Batch) Finish(ctx context.Context, scope ...string) (int, error) {
 			return 0, err
 		}
 	}
-	return int(removed), b.tx.Commit()
+	if err := b.tx.Commit(); err != nil {
+		return 0, err
+	}
+	if removed > 0 {
+		go func() {
+			if err := Compact(context.WithoutCancel(ctx), b.db); err != nil {
+				log.Warnf("shrink library: %v", err)
+			}
+		}()
+	}
+	return int(removed), nil
 }
 
 // Changed tells listeners that a library's index changed outside a request;
