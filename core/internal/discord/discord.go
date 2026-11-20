@@ -11,9 +11,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
-	"unicode/utf8"
 
 	"github.com/Conava/dux-player/core/internal/source"
 	"github.com/duxlabs-dev/dux-go/log"
@@ -43,10 +43,10 @@ var (
 
 var errRejected = errors.New("handshake rejected: the application id is unknown to Discord")
 
-// Activity is the track shown on the card.
+// Activity is the card: two lines, the image's hover text and an https cover URL that replaces the logo.
 type Activity struct {
-	Title, Artist, Album string
-	Start                time.Time
+	Details, State, LargeText, Image string
+	Start                            time.Time
 }
 
 // Client keeps Discord's card in line with the newest wanted activity. Its methods never block on Discord.
@@ -179,8 +179,8 @@ func (s *session) differs(want *Activity) bool {
 	if want == nil || s.sent == nil {
 		return want != s.sent
 	}
-	return want.Title != s.sent.Title || want.Artist != s.sent.Artist || want.Album != s.sent.Album ||
-		!want.Start.Equal(s.sent.Start)
+	return want.Details != s.sent.Details || want.State != s.sent.State || want.LargeText != s.sent.LargeText ||
+		want.Image != s.sent.Image || !want.Start.Equal(s.sent.Start)
 }
 
 func (s *session) send(want *Activity) error {
@@ -337,25 +337,24 @@ func readReply(conn net.Conn) (uint32, reply, error) {
 	return op, r, nil
 }
 
-// activityJSON builds the card. Never the cover: its URL carries the server token.
+// activityJSON builds the card. The image is a public lookup's URL, never the library's cover: that carries the server token.
 func activityJSON(a *Activity) any {
 	if a == nil {
 		return nil
 	}
 	out := map[string]any{"type": 2} // 2: Listening
-	if details := field(a.Title); details != "" {
-		if utf8.RuneCountInString(details) == 1 {
-			// Discord refuses text shorter than 2 characters and trims spaces, so pad with a zero width space.
-			details += "\u200b"
-		}
+	if details := field(a.Details); details != "" {
 		out["details"] = details
 	}
-	if artist := field(a.Artist); artist != "" {
-		out["state"] = field("by " + artist)
+	if state := field(a.State); state != "" {
+		out["state"] = state
 	}
 	assets := map[string]string{"large_image": LargeImageKey}
-	if album := field(a.Album); utf8.RuneCountInString(album) >= 2 {
-		assets["large_text"] = album
+	if strings.HasPrefix(a.Image, "https://") {
+		assets["large_image"] = a.Image
+	}
+	if text := field(a.LargeText); text != "" {
+		assets["large_text"] = text
 	}
 	out["assets"] = assets
 	if !a.Start.IsZero() {
@@ -364,10 +363,14 @@ func activityJSON(a *Activity) any {
 	return out
 }
 
+// field cleans and caps s. Discord refuses text shorter than 2 characters and trims spaces, so one character gets a zero width space.
 func field(s string) string {
-	r := []rune(source.Clean(s))
+	r := []rune(strings.TrimSpace(source.Clean(s)))
 	if len(r) > maxFieldLen {
 		r = r[:maxFieldLen]
+	}
+	if len(r) == 1 {
+		r = append(r, '\u200b')
 	}
 	return string(r)
 }

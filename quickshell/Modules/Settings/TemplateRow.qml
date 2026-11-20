@@ -10,6 +10,7 @@ SettingsRow {
     property string template: ""
     // offers the fields only the playing track has
     property bool nowPlaying: false
+    property bool showPreview: true
 
     readonly property var sample: PlayerService.current ?? CatalogService.visibleTracks()[0] ?? null
     readonly property var fieldNames: UiConfig.templateFieldNames.filter(f => nowPlaying || f !== "playingfrom")
@@ -43,7 +44,7 @@ SettingsRow {
 
         StyledText {
             width: parent.width
-            visible: root.preview !== ""
+            visible: root.showPreview && root.preview !== ""
             text: I18n.tr("Preview: %1", "template field: the text on the current track").arg(root.preview)
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceVariantText

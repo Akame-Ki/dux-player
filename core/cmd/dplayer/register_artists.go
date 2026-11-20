@@ -3,11 +3,15 @@ package main
 import (
 	"os"
 	"strings"
+	"sync/atomic"
 
 	"github.com/Conava/dux-player/core/internal/artists"
 	"github.com/Conava/dux-player/core/internal/ipc"
 	"github.com/Conava/dux-player/core/internal/playlists"
 )
+
+// artistService is set once the artists feature started.
+var artistService atomic.Pointer[artists.Service]
 
 func init() {
 	var svc *artists.Service
@@ -29,6 +33,7 @@ func init() {
 				Lang:     systemLanguage(),
 				Publish:  d.Bus.Publish,
 			})
+			artistService.Store(svc)
 			d.Bus.On(d.Ctx, func(_ string, data any) {
 				if m, ok := data.(map[string]string); ok {
 					svc.Invalidate(m["library"], m["id"])

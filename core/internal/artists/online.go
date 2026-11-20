@@ -39,6 +39,7 @@ type Endpoints struct {
 	Commons   string
 	FanartTV  string
 	LastFM    string
+	CoverArt  string
 }
 
 var DefaultEndpoints = Endpoints{
@@ -48,6 +49,7 @@ var DefaultEndpoints = Endpoints{
 	Commons:     "https://commons.wikimedia.org",
 	FanartTV:    "https://webservice.fanart.tv",
 	LastFM:      "https://ws.audioscrobbler.com",
+	CoverArt:    "https://coverartarchive.org",
 }
 
 // entry is what the online services know about one artist name.

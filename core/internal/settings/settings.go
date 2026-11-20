@@ -17,6 +17,7 @@ import (
 	"sync"
 	"time"
 	"unicode"
+	"unicode/utf8"
 
 	"github.com/duxlabs-dev/dux-go/log"
 
@@ -73,6 +74,12 @@ type Settings struct {
 	LyricsAudioTiming bool `json:"lyricsAudioTiming"`
 	// DiscordPresence shows the playing track in Discord.
 	DiscordPresence bool `json:"discordPresence"`
+	// DiscordDetails, DiscordState and DiscordLargeText are templates for the card's two lines and the logo's hover text.
+	DiscordDetails   string `json:"discordDetails"`
+	DiscordState     string `json:"discordState"`
+	DiscordLargeText string `json:"discordLargeText"`
+	// DiscordCover looks the album cover up online for the card instead of the logo.
+	DiscordCover bool `json:"discordCover"`
 	// PrefetchTracks is how many upcoming server tracks are downloaded
 	// ahead, 0-3; PrefetchOnMetered keeps doing it on a metered connection.
 	PrefetchTracks    int  `json:"prefetchTracks"`
@@ -151,6 +158,9 @@ func Defaults() Settings {
 		Lyrics:             true,
 		LyricsForDownloads: true,
 		LyricsAudioTiming:  true,
+		DiscordDetails:     "%title%",
+		DiscordState:       "[by %artist%]",
+		DiscordLargeText:   "%album%",
 	}
 }
 
@@ -394,6 +404,14 @@ func apply(s Settings, key string, v any) (Settings, error) {
 		s.LyricsAudioTiming, err = toBool(key, v)
 	case "discordPresence":
 		s.DiscordPresence, err = toBool(key, v)
+	case "discordDetails":
+		s.DiscordDetails, err = toTemplate(key, v)
+	case "discordState":
+		s.DiscordState, err = toTemplate(key, v)
+	case "discordLargeText":
+		s.DiscordLargeText, err = toTemplate(key, v)
+	case "discordCover":
+		s.DiscordCover, err = toBool(key, v)
 	case "volumeTarget":
 		s.VolumeTarget, err = oneOf(key, v, player.VolumeApp, player.VolumeSystem)
 	case "equalizer":
@@ -451,6 +469,17 @@ func toTexts(key string, v any, limit int) ([]string, error) {
 		out = append(out, s)
 	}
 	return out, nil
+}
+
+const maxTemplate = 256
+
+// toTemplate reads a text template; empty is allowed.
+func toTemplate(key string, v any) (string, error) {
+	s, ok := v.(string)
+	if !ok || utf8.RuneCountInString(s) > maxTemplate || strings.ContainsFunc(s, unicode.IsControl) {
+		return "", fmt.Errorf("%s must be text of at most %d characters", key, maxTemplate)
+	}
+	return s, nil
 }
 
 // toSkipRules merges a partial {minRating, genres, libraries, shorterThan}

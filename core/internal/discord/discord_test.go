@@ -110,17 +110,21 @@ func TestActivityReachesDiscord(t *testing.T) {
 		steps []*Activity // nil is Clear
 		want  string      // the activity Discord gets for the last step
 	}{
-		{"full card", []*Activity{{Title: "Song", Artist: "Band", Album: "Record", Start: start}},
+		{"full card", []*Activity{{Details: "Song", State: "by Band", LargeText: "Record", Start: start}},
 			`{"type":2,"details":"Song","state":"by Band","assets":{"large_image":"logo","large_text":"Record"},"timestamps":{"start":1700000000}}`},
-		{"no artist, no album", []*Activity{{Title: "Song"}},
+		{"empty lines are left out", []*Activity{{Details: "Song", State: "  "}},
 			`{"type":2,"details":"Song","assets":{"large_image":"logo"}}`},
-		{"control characters and length", []*Activity{{Title: "So\x00ng\n", Artist: long}},
-			`{"type":2,"details":"Song","state":"by ` + strings.Repeat("x", maxFieldLen-3) + `","assets":{"large_image":"logo"}}`},
-		{"one-character title and album", []*Activity{{Title: "A", Album: "B"}},
-			`{"type":2,"details":"A\u200b","assets":{"large_image":"logo"}}`},
-		{"empty title after cleaning", []*Activity{{Title: "\x00\n", Artist: "Band"}},
+		{"control characters and length", []*Activity{{Details: "So\x00ng\n", State: long}},
+			`{"type":2,"details":"Song","state":"` + strings.Repeat("x", maxFieldLen) + `","assets":{"large_image":"logo"}}`},
+		{"one character is padded", []*Activity{{Details: "A", State: "B", LargeText: "C"}},
+			`{"type":2,"details":"A\u200b","state":"B\u200b","assets":{"large_image":"logo","large_text":"C\u200b"}}`},
+		{"empty after cleaning", []*Activity{{Details: "\x00\n", State: "by Band"}},
 			`{"type":2,"state":"by Band","assets":{"large_image":"logo"}}`},
-		{"clear sends null", []*Activity{{Title: "Song"}, nil}, `null`},
+		{"cover replaces the logo", []*Activity{{Details: "Song", Image: "https://covers.example/a.jpg"}},
+			`{"type":2,"details":"Song","assets":{"large_image":"https://covers.example/a.jpg"}}`},
+		{"only an https cover", []*Activity{{Details: "Song", Image: "http://srv/rest/getCoverArt?t=token"}},
+			`{"type":2,"details":"Song","assets":{"large_image":"logo"}}`},
+		{"clear sends null", []*Activity{{Details: "Song"}, nil}, `null`},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -144,7 +148,9 @@ func TestActivityReachesDiscord(t *testing.T) {
 			raw, err := json.Marshal(args["activity"])
 			require.NoError(t, err)
 			assert.JSONEq(t, tc.want, string(raw))
-			assert.NotContains(t, string(raw), "://")
+			if last := tc.steps[len(tc.steps)-1]; last == nil || last.Image == "" {
+				assert.NotContains(t, string(raw), "://")
+			}
 		})
 	}
 }
@@ -154,7 +160,7 @@ func TestRejectedHandshakeBacksOffToMax(t *testing.T) {
 	f := startFake(t, true)
 	c := New()
 	defer c.Close()
-	c.Set(Activity{Title: "Song"})
+	c.Set(Activity{Details: "Song"})
 
 	require.Eventually(t, func() bool { return f.handshakes.Load() == 1 }, 2*time.Second, 5*time.Millisecond)
 	time.Sleep(300 * time.Millisecond)
@@ -166,7 +172,7 @@ func TestCloseClearsAndReturns(t *testing.T) {
 	fastTimers(t, 10*time.Millisecond, 50*time.Millisecond)
 	f := startFake(t, false)
 	c := New()
-	c.Set(Activity{Title: "Song"})
+	c.Set(Activity{Details: "Song"})
 	f.next(t)
 	done := make(chan struct{})
 	go func() { c.Close(); close(done) }()

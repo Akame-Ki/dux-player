@@ -196,6 +196,13 @@
     "comment": ""
   },
   {
+    "term": "%1 elapsed",
+    "translation": "",
+    "context": "discord card preview: time since the track started",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "%1 elements",
     "translation": "",
     "context": "now playing surface summary, plural",
@@ -3234,6 +3241,13 @@
     "comment": ""
   },
   {
+    "term": "First line",
+    "translation": "",
+    "context": "discord presence template",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Flat",
     "translation": "",
     "context": "equalizer preset",
@@ -3657,6 +3671,13 @@
     "term": "Icon",
     "translation": "",
     "context": "custom page option: the icon in the navigation",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Image tooltip",
+    "translation": "",
+    "context": "discord presence template: text shown when hovering the image on the card",
     "reference": "",
     "comment": ""
   },
@@ -4182,6 +4203,13 @@
     "term": "ListenBrainz and Last.fm",
     "translation": "",
     "context": "settings sidebar tab hint",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Listening to %1",
+    "translation": "",
+    "context": "discord card preview heading, %1 is the app name",
     "reference": "",
     "comment": ""
   },
@@ -5593,6 +5621,13 @@
     "comment": ""
   },
   {
+    "term": "Preview",
+    "translation": "",
+    "context": "discord card preview",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Preview: %1",
     "translation": "",
     "context": "template field: the text on the current track",
@@ -6552,6 +6587,13 @@
     "comment": ""
   },
   {
+    "term": "Second line",
+    "translation": "",
+    "context": "discord presence template",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Sections",
     "translation": "",
     "context": "page edit mode section: the page's own parts, ordered and hidden",
@@ -6604,6 +6646,13 @@
     "term": "Select none",
     "translation": "",
     "context": "selection bar action",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Sends artist and album to Last.fm and MusicBrainz.",
+    "translation": "",
+    "context": "discord album cover description",
     "reference": "",
     "comment": ""
   },
@@ -6709,6 +6758,13 @@
     "term": "Show %1",
     "translation": "",
     "context": "eye button on an editor row, %1 is the element",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Show album cover",
+    "translation": "",
+    "context": "discord presence setting",
     "reference": "",
     "comment": ""
   },

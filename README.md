@@ -62,7 +62,7 @@ Pages, columns and the full view can be customized.
 - `dplayer play <folder>` skips files it can't read and says how many
 - Save the queue as a new local playlist from the queue menu (Add to playlist…), or with `dplayer queue save <name>`
 - Play history is kept for 1, 3 or 6 months, 1 or 5 years, or forever, set in Settings → Playback
-- Optional Discord Rich Presence for the playing track (app logo only, no cover), off by default, in Settings → Integrations
+- Optional Discord Rich Presence for the playing track, off by default, with templates for its two lines and the image's tooltip, the album cover from Last.fm or MusicBrainz in place of the app logo (off by default) and a preview of the card, in Settings → Integrations
 - `dplayer sleep after <number>` stops when a queue entry ends, numbered as `dplayer queue` lists it; a rule behind the current track is dropped unless repeat all is on, and while casting the receiver gets the queue only up to that entry
 - Text templates for a now-playing line and for custom columns in track lists; each column has its own title, Sort by field and width (small, medium or large, or drag the border between two columns; Length takes the three sizes only)
 - Filter rules for track, album and artist pages: match all or any of a list of conditions on fields such as genre, library, rating, year, length, plays, date added and last played
@@ -155,7 +155,7 @@ Dux Player only contacts the servers you add, except for these features, each of
 - **Artist information:** artist names are sent to MusicBrainz, Wikidata and Wikipedia, and to fanart.tv once you add your own API key. Last.fm gets them too, through the app's built-in API key or your own. Biographies from Wikipedia are available under [CC BY-SA 4.0](https://creativecommons.org/licenses/by-sa/4.0/).
 - **Lyrics:** on by default. Title, artist and length of the playing track, of the next track while lyrics are open, and of downloaded tracks are sent to the enabled lyrics providers. Turn lyrics off in Settings → Lyrics and no provider is contacted; turn off Lyrics for downloaded tracks to send only tracks you play. Matching lyrics timing to the audio runs on this device and sends nothing.
 - **Scrobbling:** played tracks are sent to ListenBrainz or Last.fm when you connect an account, and server libraries also report them to their server. Each library turns either destination off in its settings on the Libraries page. Last.fm uses the app's built-in API account; if you prefer, enter your own [API account](https://www.last.fm/api/account/create).
-- **Discord Rich Presence:** off by default (Settings → Integrations). When on, the title, artist and album of the playing track are sent to the Discord desktop client over its local socket, which shows them on your Discord profile. Nothing is sent when Discord isn't running.
+- **Discord Rich Presence:** off by default (Settings → Integrations). When on, the text its templates make from the playing track (by default the title, artist and album) is sent to the Discord desktop client over its local socket, which shows them on your Discord profile. Nothing is sent when Discord isn't running. With Show album cover on, the album and its artist are also sent to Last.fm (through the app's built-in API key or your own) and, when Last.fm has no cover, to MusicBrainz and the Cover Art Archive; the cover's public address then goes to Discord.
 
 ## Contributing
 

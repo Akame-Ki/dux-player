@@ -49,6 +49,11 @@ Singleton {
             // months of play history kept, 0 keeps it forever
             "historyMonths": 12,
             "discordPresence": false,
+            // templates for the Discord card's two lines and the logo's hover text
+            "discordDetails": "%title%",
+            "discordState": "[by %artist%]",
+            "discordLargeText": "%album%",
+            "discordCover": false,
             "allowVolumeBoost": false,
             // "app" (mpv's own volume) | "system" (the default output's)
             "volumeTarget": "app",
@@ -131,6 +136,15 @@ Singleton {
     // org.freedesktop.appearance color-scheme: 0 = no preference, 1 = prefer dark, 2 = prefer light
     property int colorScheme: 0
 
+    // the cover the Discord card shows for a track's album; "" for the logo, also when the lookup fails
+    function discordCover(track, then) {
+        DaemonBridge.request("discord.cover", {
+            "albumArtist": track.albumArtist ?? "",
+            "artist": track.artist ?? "",
+            "album": track.album ?? ""
+        }, null, r => then(r.image ?? ""), () => then(""));
+    }
+
     function setSetting(name, value) {
         const params = {};
         switch (name) {
@@ -158,6 +172,10 @@ Singleton {
         case "previousThreshold":
         case "historyMonths":
         case "discordPresence":
+        case "discordDetails":
+        case "discordState":
+        case "discordLargeText":
+        case "discordCover":
         case "allowVolumeBoost":
         case "volumeTarget":
         case "artistInfoOnline":
@@ -621,6 +639,10 @@ Singleton {
             "previousThreshold": s.previousThreshold ?? 5,
             "historyMonths": s.historyMonths ?? 12,
             "discordPresence": s.discordPresence === true,
+            "discordDetails": s.discordDetails ?? settings.discordDetails,
+            "discordState": s.discordState ?? settings.discordState,
+            "discordLargeText": s.discordLargeText ?? settings.discordLargeText,
+            "discordCover": s.discordCover === true,
             "allowVolumeBoost": s.allowVolumeBoost === true,
             "volumeTarget": s.volumeTarget === "system" ? "system" : "app",
             "artistInfoOnline": s.artistInfoOnline !== false,
