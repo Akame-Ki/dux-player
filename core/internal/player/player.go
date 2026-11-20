@@ -2438,6 +2438,8 @@ func (p *Player) startContinue(play bool, done chan<- error) {
 		finish(p.doPlay(p.runCtx, func(ctx context.Context) error {
 			p.feeding = false
 			if p.queueGen != gen {
+				// the new queue's own refill was skipped while this one ran
+				p.maybeFeed()
 				return nil
 			}
 			if err != nil {
