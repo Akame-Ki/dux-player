@@ -5,6 +5,7 @@ import QtQuick.Templates as T
 import Quickshell
 import qs.Common
 import qs.Services
+import qs.DCommon.Common as DC
 import qs.DCommon.Widgets
 import qs.Widgets
 import "../Common/EscapeStack.js" as Escape
@@ -26,7 +27,15 @@ DFloatingWindow {
     readonly property string navMode: SettingsData.navStyle === "auto" ? (compact ? "bar" : "rail") : SettingsData.navStyle
     readonly property bool railNav: navMode !== "bar"
     // the header search as a full field; a narrow window keeps the button
-    readonly property bool headerField: SettingsData.headerSearch === "field" && !compact
+    // Search and Settings are navigation entries while the title bars are off, and the header is gone
+    readonly property bool titleBarsOff: !StyleSource.windowTitleBars
+    readonly property bool headerField: SettingsData.headerSearch === "field" && !compact && !titleBarsOff
+    // the full view has no top bar unless asked for; a handle moves the window instead
+    readonly property bool headerHidden: !SettingsData.fullViewTopBar
+    // KWin draws its own title bar when ours are off, so it has nothing to be moved by
+    readonly property bool handleShown: titleBarsOff && DC.Compositor.desktop !== "kde"
+    // what the header's place at the top holds: the header, the handle's strip, or just the inset
+    readonly property real topHeight: !titleBarsOff ? header.height : handleShown ? Theme.windowInset * 2 + Theme.bottomSheetHandleHeight : Theme.windowInset
     readonly property bool sidePanel: Router.dockMode === "side" && !compact
     readonly property var navModel: Router.navEntries.map(e => ({
                 "text": UiConfig.entryLabel(e),
@@ -188,6 +197,10 @@ DFloatingWindow {
                 id: header
                 width: parent.width
                 z: Theme.zHeader
+                visible: !window.titleBarsOff
+                // gone with the pages; disabled, not hidden, so the column keeps its slot
+                opacity: window.headerHidden ? Math.max(0, 1 - body.fullFade / PlayerMetrics.morphPagesFade) : 1
+                enabled: opacity > 0
                 controls: windowControls
                 title: I18n.tr("Dux Player", "app name")
                 // a centered title would collide with the field
@@ -228,7 +241,7 @@ DFloatingWindow {
                     anchors.verticalCenter: parent.verticalCenter
 
                     DActionGroup.Button {
-                        visible: !window.headerField
+                        visible: SettingsData.headerSearch === "button" || (SettingsData.headerSearch === "field" && window.compact)
                         buttonSize: Theme.buttonHeightXS
                         iconSize: Theme.iconSizeSmall
                         iconName: "search"
@@ -272,9 +285,16 @@ DFloatingWindow {
             }
 
             Item {
+                id: topSpace
+                width: parent.width
+                height: window.titleBarsOff ? window.topHeight : 0
+                visible: window.titleBarsOff
+            }
+
+            Item {
                 id: body
                 width: parent.width
-                height: parent.height - header.height
+                height: parent.height - window.topHeight
                 visible: DaemonBridge.connected
 
                 readonly property bool fullWanted: Router.nowPlayingOpen && PlayerService.current !== null
@@ -663,8 +683,12 @@ DFloatingWindow {
                     // never ahead of the surface, or the view would show outside it as it shrinks
                     readonly property real entry: Math.max(0, Math.min((body.fullFade - PlayerMetrics.morphViewFade) / (1 - PlayerMetrics.morphViewFade), (body.fullReveal - PlayerMetrics.morphViewCover) / (1 - PlayerMetrics.morphViewCover)))
 
+                    // without the top bar the view reaches to the window's top, at this size all the time
+                    readonly property real reach: window.headerHidden || window.titleBarsOff ? window.topHeight : 0
+
+                    y: -reach
                     width: parent.width
-                    height: parent.height
+                    height: parent.height + reach
                     opacity: entry
                     enabled: body.fullWanted || entry > 0
                     asynchronous: true
@@ -675,7 +699,7 @@ DFloatingWindow {
 
                     transform: Scale {
                         origin.x: card.sourcePos.x + card.source.width / 2
-                        origin.y: card.sourcePos.y + card.source.height / 2
+                        origin.y: card.sourcePos.y + card.source.height / 2 + viewLoader.reach
                         xScale: 1 - (1 - PlayerMetrics.pageEnterScale) * Math.pow(1 - viewLoader.entry, 2)
                         yScale: xScale
                     }
@@ -685,7 +709,7 @@ DFloatingWindow {
             // instead of stale data while the bridge redials; the next link reloads everything
             Item {
                 width: parent.width
-                height: parent.height - header.height
+                height: parent.height - window.topHeight
                 visible: !DaemonBridge.connected
 
                 Column {
@@ -716,6 +740,18 @@ DFloatingWindow {
                     }
                 }
             }
+        }
+
+        DSheetHandle {
+            anchors.horizontalCenter: parent.horizontalCenter
+            anchors.top: parent.top
+            height: window.titleBarsOff ? window.topHeight : implicitHeight
+            z: Theme.zHeader
+            opacity: window.titleBarsOff ? (window.handleShown ? 1 : 0) : window.headerHidden ? viewLoader.entry : 0
+            visible: opacity > 0
+            enabled: window.titleBarsOff || body.fullWanted
+            Accessible.name: I18n.tr("Move window", "drag handle of the full view")
+            onDragStarted: windowControls.tryStartMove()
         }
 
         AddToPlaylistDialog {}

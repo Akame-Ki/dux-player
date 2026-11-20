@@ -45,6 +45,8 @@ Singleton {
     property alias windowTitleBars: settingsAdapter.windowTitleBars
     // "button" | "field": the header search as a button or a full field
     property alias headerSearch: settingsAdapter.headerSearch
+    // keeps the window's top bar in the full view; off swaps it for a drag handle
+    property alias fullViewTopBar: settingsAdapter.fullViewTopBar
     property alias language: settingsAdapter.language
     // take every style value from Dux Shell when it is detected
     property alias followShell: settingsAdapter.followShell
@@ -211,6 +213,7 @@ Singleton {
             property string focusRingColor: "primary"
             property bool windowTitleBars: true
             property string headerSearch: "button"
+            property bool fullViewTopBar: false
             property string language: ""
             property var layout: ({})
             property var lyricsDisplay: ({})

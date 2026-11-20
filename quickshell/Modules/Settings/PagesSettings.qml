@@ -208,21 +208,25 @@ Item {
                 required property var modelData
                 readonly property bool valid: UiConfig.entryValid(modelData)
                 readonly property bool lastShown: !modelData.hidden && root.shownCount <= 1
+                // the header's Search moved here while title bars are off
+                readonly property bool locked: UiConfig.navigationForced && modelData.key === "page:search"
                 readonly property var target: valid ? root.pageOf(modelData) : null
                 view: list
                 surfaceColor: SettingsMetrics.rowColor
                 iconName: UiConfig.entryIcon(modelData)
                 title: valid ? UiConfig.entryLabel(modelData) : I18n.tr("Removed item", "navigation entry whose target was deleted")
                 subtitle: {
+                    if (locked)
+                        return I18n.tr("Shown while title bars are off", "why the Search navigation entry can't be hidden");
                     if (lastShown)
                         return I18n.tr("At least one entry must stay visible", "why the last shown navigation entry can't be turned off");
                     const kind = modelData.kind === "page" ? I18n.tr("Page", "navigation entry kind") : UiConfig.shelfSourceLabel(modelData.kind);
                     const name = modelData.label ? I18n.tr("%1, renamed from %2", "navigation entry subtitle: kind, original name").arg(kind).arg(UiConfig.defaultEntryLabel(modelData)) : kind;
                     return target?.changed ? Phrases.join(name, target.summary) : name;
                 }
-                hidden: modelData.hidden === true
+                hidden: modelData.hidden === true && !locked
                 dimmed: hidden || !valid
-                hideEnabled: !lastShown && valid
+                hideEnabled: !lastShown && valid && !locked
                 // pages always have a place; pinned items can go
                 removable: modelData.kind !== "page"
                 onHiddenToggled: hidden => root.setShown(modelData, !hidden)

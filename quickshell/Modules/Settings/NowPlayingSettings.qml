@@ -163,6 +163,13 @@ Item {
                         });
                 }
             }
+
+            SettingsToggleRow {
+                text: I18n.tr("Top bar in full view", "now playing setting")
+                keywords: "header title bar window buttons drag handle"
+                checked: SettingsData.fullViewTopBar
+                onToggled: value => SettingsData.fullViewTopBar = value
+            }
         }
 
         SectionLabel {

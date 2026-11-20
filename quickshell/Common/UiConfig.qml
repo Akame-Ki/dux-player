@@ -754,7 +754,9 @@ Singleton {
     readonly property var pageTargets: Catalog.pageTargets
     // every entry, turned off ones included, in the order set in Settings
     readonly property var navigation: Catalog.navEntries(effective.navigation, pageTargets, ["home", "playlists", "favorites", "tracks", "albums", "artists", "libraries"])
-    readonly property var shownNavigation: navigation.filter(e => !e.hidden && entryValid(e))
+    // while title bars are off the header's Search and Settings are entries here, and Search can't be hidden
+    readonly property bool navigationForced: !StyleSource.windowTitleBars
+    readonly property var shownNavigation: Catalog.forceNav(navigation, navigationForced).filter(e => !e.hidden && entryValid(e))
 
     function pageLabel(page) {
         switch (page) {
@@ -816,6 +818,8 @@ Singleton {
             return savedView(entry.target)?.name ?? "";
         case "artist":
             return PlayerService.artist(entry.target)?.name ?? entry.name ?? "";
+        case "settings":
+            return I18n.tr("Settings", "the settings window");
         }
         return "";
     }
@@ -843,6 +847,8 @@ Singleton {
             return savedView(entry.target)?.icon ?? "bookmark";
         case "artist":
             return "artist";
+        case "settings":
+            return "settings";
         }
         return "circle";
     }

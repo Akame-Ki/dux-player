@@ -193,6 +193,10 @@ Singleton {
     }
 
     function openEntry(entry) {
+        if (entry.kind === "settings") {
+            openSettings("");
+            return;
+        }
         const route = UiConfig.entryRoute(entry);
         history = [];
         forwardHistory = [];

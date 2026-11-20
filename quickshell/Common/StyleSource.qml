@@ -63,6 +63,8 @@ Singleton {
     readonly property real floatingWindowForegroundTransparency: fromShell.transparency && !shellWindowSync ? shell.value("floatingWindowForegroundTransparency", 1) : foregroundLayerTransparency
     readonly property bool floatingWindowForegroundLayers: fromShell.transparency && !shellWindowSync ? shell.value("floatingWindowForegroundLayers", true) : foregroundLayers
 
+    // the shell's floating-window title bars, with the window opacity's group
+    readonly property bool windowTitleBars: fromShell.transparency ? shell.value("floatingWindowTitleBars", true) : SettingsData.windowTitleBars
     readonly property real radiusStrength: fromShell.radius ? shell.value("radiusStrength", 50) : SettingsData.radiusStrength
     readonly property real fixedRadius: fromShell.radius && shell.value("radiusMode", "scale") === "fixed" ? shell.value("fixedRadius", 12) : -1
     readonly property string density: SettingsData.density

@@ -343,6 +343,14 @@ SettingsPage {
             value: Math.round(SettingsData.windowTransparency * 100)
             onSliderDragFinished: finalValue => SettingsData.windowTransparency = finalValue / 100
         }
+
+        SettingsToggleRow {
+            text: I18n.tr("Title bars", "window title bars toggle label")
+            keywords: "decorations csd window header"
+            description: I18n.tr("Off leaves decorations to the compositor. Applies to new windows.", "window title bars toggle description")
+            checked: SettingsData.windowTitleBars
+            onToggled: value => SettingsData.windowTitleBars = value
+        }
     }
 
     Group {

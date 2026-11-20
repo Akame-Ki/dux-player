@@ -158,7 +158,8 @@ grim -g "$tile" "$W/out/tile-after.png"
 cmp -s "$W/out/tile-focus.png" "$W/out/tile-after.png" && same=yes || same=no
 expect "tile looks the same after its menu" "$same" yes
 
-# Escape takes the menu, not the full view under it
+# Escape takes the menu, not the full view under it; the ⋮ menu is in the top bar, hidden in the full view by default
+ui fullViewTopBar true
 go tracks
 dp play "$W/music" >/dev/null 2>&1
 sleep 2

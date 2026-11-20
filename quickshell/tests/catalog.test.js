@@ -4,7 +4,7 @@ const path = require("path");
 const assert = require("assert");
 
 const source = fs.readFileSync(path.join(__dirname, "../Services/Catalog.js"), "utf8").replace(".pragma library", "");
-const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, pageTargets, setPinned, track, filterText, browsable, sortSignature, shape, groupLabel };")();
+const C = new Function(source + "; return { trackPositions, sortBy, suffixDurations, diff, singleMove, navEntries, forceNav, pageTargets, setPinned, track, filterText, browsable, sortSignature, shape, groupLabel };")();
 
 function apply(list, edit) {
     const out = list.slice();
@@ -73,6 +73,12 @@ assert.deepStrictEqual(C.navEntries([{"kind": "page", "target": "albums"}], ["ho
 // a stored list from before the Search page gets it appended, hidden
 const upgraded = C.navEntries([{"kind": "page", "target": "home"}], C.pageTargets, ["home"]);
 assert.deepStrictEqual(upgraded.filter(e => e.target === "search").map(e => e.hidden), [true]);
+// title bars off: Search can't be hidden and Settings closes the list; on, and the stored list is untouched
+const stored = C.navEntries([{"kind": "page", "target": "home"}, {"kind": "page", "target": "search", "hidden": true}], ["home", "search"], ["home"]);
+const shownOf = list => list.filter(e => !e.hidden).map(e => e.kind + ":" + e.target);
+assert.deepStrictEqual(shownOf(C.forceNav(stored, false)), ["page:home"]);
+assert.deepStrictEqual(shownOf(C.forceNav(stored, true)), ["page:home", "page:search", "settings:"]);
+assert.strictEqual(stored[1].hidden, true);
 // artists: the daemon's list with library-scoped ids, else the single artist; no page without an id
 const artistsOf = t => C.track(Object.assign({"library": "l", "id": "t"}, t)).artists;
 assert.deepStrictEqual(artistsOf({"artist": "A • B", "artistId": "a", "artists": [{"id": "a", "name": "A"}, {"id": "", "name": "B"}]}), [{"id": "l:a", "name": "A"}, {"id": "", "name": "B"}]);

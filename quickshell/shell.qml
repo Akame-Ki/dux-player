@@ -29,7 +29,7 @@ ShellRoot {
         DC.Paths.backend = Paths;
         DC.Log.backend = Log;
         DC.Host.files = FilesService;
-        DC.Host.ownWindowDecorations = Qt.binding(() => SettingsData.windowTitleBars);
+        DC.Host.ownWindowDecorations = Qt.binding(() => StyleSource.windowTitleBars);
     }
 
     // Closing the window keeps the daemon playing when "Keep running" is on; the UI process quits either way.

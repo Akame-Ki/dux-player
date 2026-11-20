@@ -152,6 +152,16 @@ function navEntries(stored, pages, shownByDefault) {
     return list;
 }
 
+// With title bars off the header's Search and Settings live in the navigation: Search is always shown and a
+// Settings entry closes the list. Derived, so the stored list is never touched.
+function forceNav(list, titleBarsOff) {
+    if (!titleBarsOff)
+        return list;
+    return list.map(e => e.kind === "page" && e.target === "search" ? Object.assign({}, e, {
+            "hidden": false
+        }) : e).concat([navEntry("settings", "")]);
+}
+
 // name: kept on a new entry for targets the catalog may not list (an artist without albums)
 function setPinned(list, kind, target, on, name) {
     const at = list.findIndex(e => e.kind === kind && e.target === target);

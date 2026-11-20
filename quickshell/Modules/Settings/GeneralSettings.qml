@@ -12,7 +12,7 @@ SettingsPage {
     id: root
 
     readonly property var removeModes: ["undo", "confirm", "none"]
-    readonly property var headerSearchModes: ["button", "field"]
+    readonly property var headerSearchModes: ["off", "button", "field"]
     readonly property var keyProviders: (SettingsService.artistInfo.providers ?? []).filter(p => p.needsKey)
     readonly property string onlineServices: (SettingsService.artistInfo.providers ?? []).map(p => p.name).join(", ")
     property bool keysShown: false
@@ -178,7 +178,9 @@ SettingsPage {
         SettingsButtonGroupRow {
             text: I18n.tr("Search in header", "general setting")
             keywords: "search field title bar header toolbar find"
-            model: [I18n.tr("Button", "header search option"), I18n.tr("Field", "header search option")]
+            enabled: StyleSource.windowTitleBars
+            description: enabled ? "" : I18n.tr("Search is in the navigation while title bars are off.", "why the header search setting is off")
+            model: [I18n.tr("Off", "option that turns something off"), I18n.tr("Button", "header search option"), I18n.tr("Field", "header search option")]
             currentIndex: Math.max(0, root.headerSearchModes.indexOf(SettingsData.headerSearch))
             onSelectionChanged: (index, selected) => {
                 if (selected)
