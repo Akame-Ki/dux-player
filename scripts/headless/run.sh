@@ -382,6 +382,15 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function headerSearch(mode: string): void {
             SettingsData.headerSearch = mode;
         }
+        function navEntries(): string {
+            return Router.navEntries.map(e => e.kind + ":" + e.target).join(" ");
+        }
+        function titleBars(on: bool): void {
+            SettingsData.windowTitleBars = on;
+        }
+        function fullViewTopBar(on: bool): void {
+            SettingsData.fullViewTopBar = on;
+        }
         // the time, then the middle of every lyrics line as drawn on screen, top to bottom
         function lyricsRows(): string {
             const rows = [];
@@ -530,6 +539,12 @@ cat >>"$W/tree/shell.qml" <<'Q'
         function trackPoint(): string {
             const row = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.width > 0 && String(i).startsWith("TrackRow"));
             const p = row ? row.mapToItem(null, row.width / 2, row.height / 2) : null;
+            return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
+        }
+        // "X Y": the centre of the first visible item of the main window whose tooltip is `label`, "" when none
+        function pagePoint(label: string): string {
+            const item = frameProbe.firstIn(frameProbe.window().contentItem, i => i.visible && i.width > 0 && i.tooltipText === label);
+            const p = item ? item.mapToItem(null, item.width / 2, item.height / 2) : null;
             return p ? Math.round(p.x) + " " + Math.round(p.y) : "";
         }
         function showDetails(title: string): void {

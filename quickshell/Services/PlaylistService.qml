@@ -14,11 +14,22 @@ Singleton {
     readonly property var log: Log.scoped("PlaylistService")
 
     property var playlists: []
+    // library id ("" for local playlists) -> true once its playlists are in `playlists`
+    property var listedLibraries: ({})
     // id -> true while a delete waits for its undo time; such a playlist is gone everywhere but here
     property var hiddenIds: ({})
 
     function playlist(id) {
         return hiddenIds[id] ? null : _find(id);
+    }
+
+    // true once the id's playlists are listed and none matches
+    function missing(id) {
+        if (_find(id) || hiddenIds[id])
+            return false;
+        const lib = id.split(":")[0];
+        const listed = lib === "" ? listedLibraries[""] === true : !CatalogService.hasCapability(lib, "playlists") || listedLibraries[lib] === true;
+        return CatalogService.librariesLoaded && listed;
     }
 
     function _find(id) {
@@ -378,6 +389,9 @@ Singleton {
             "library": libraryId
         }, null, list => {
             root.playlists = root.playlists.filter(p => p.library !== libraryId).concat(list.map(p => Catalog.playlist(p, root.playlist(p.library + ":" + p.id))));
+            root.listedLibraries = Object.assign({}, root.listedLibraries, {
+                [libraryId]: true
+            });
             then?.();
         });
     }
@@ -395,6 +409,9 @@ Singleton {
         DaemonBridge.request("localPlaylists.list", null, null, list => {
             const local = list.map(p => Catalog.localPlaylist(p, root.playlist(":" + p.id)));
             root.playlists = root.playlists.filter(p => p.kind !== "local").concat(local);
+            root.listedLibraries = Object.assign({}, root.listedLibraries, {
+                "": true
+            });
             for (const p of local) {
                 if (p.loaded && (changedId === undefined || p.id === ":" + changedId))
                     root.loadPlaylist(p.id);

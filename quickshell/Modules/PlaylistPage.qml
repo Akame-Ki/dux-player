@@ -51,6 +51,7 @@ Item {
     readonly property string sortKey: playlistOrder ? "position" : options.sort
     readonly property bool sortDescending: !playlistOrder && options.descending
     readonly property bool editing: Router.editing
+    readonly property bool notFound: PlayerService.playlistMissing(playlistId)
     readonly property string reorderBlocker: PlayerService.whyNot("playlistReorder", playlist)
 
     // playlists fetch their tracks when opened; a loaded one is kept current by the playlists events
@@ -97,6 +98,7 @@ Item {
 
             DIconButton {
                 id: moreButton
+                visible: !root.notFound
                 anchors.verticalCenter: parent.verticalCenter
                 iconName: "more_vert"
                 tooltipText: I18n.tr("More", "track row menu button")
@@ -126,8 +128,15 @@ Item {
             }
         }
 
+        EmptyState {
+            width: parent.width
+            visible: root.notFound
+            iconName: "search_off"
+            title: I18n.tr("Not found", "page title when an album, artist or playlist doesn't exist")
+        }
+
         DetailHero {
-            visible: !root.editing
+            visible: !root.editing && !root.notFound
             eyebrow: root.server ? I18n.tr("Playlist on %1", "playlist kind label for a server playlist, %1 is the library").arg(root.serverName) : I18n.tr("Local playlist", "playlist kind label")
             title: root.playlist?.name ?? ""
             cover: PlaylistCover {
@@ -150,6 +159,7 @@ Item {
 
             PlayButtons {
                 topPadding: Theme.spacingS
+                note: download.blocker
                 enabled: root.tracks.length > 0
                 onPlay: shuffle => {
                     // a search plays what it found
@@ -164,17 +174,18 @@ Item {
                     else
                         PlayerService.playPlaylist(root.playlist.id, shuffle);
                 }
-            }
 
-            KeepOfflineRow {
-                kind: "playlist"
-                item: root.playlist
+                DownloadButton {
+                    id: download
+                    kind: "playlist"
+                    item: root.playlist
+                }
             }
         }
 
         StyledText {
             width: parent.width
-            visible: root.tracks.length === 0 || root.shownTracks.length === 0
+            visible: !root.notFound && (root.tracks.length === 0 || root.shownTracks.length === 0)
             text: root.tracks.length === 0 ? I18n.tr("Add tracks from the track menu or drag them here.", "empty playlist hint") : I18n.tr("Nothing matches \"%1\".", "search page empty result").arg(root.filterText.trim())
             font.pixelSize: Theme.fontSizeMedium
             color: Theme.surfaceVariantText

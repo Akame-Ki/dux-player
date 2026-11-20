@@ -1059,6 +1059,9 @@ Singleton {
     function album(id) {
         return CatalogService.album(id);
     }
+    function albumMissing(id) {
+        return CatalogService.albumMissing(id);
+    }
     function artist(id) {
         return CatalogService.artist(id);
     }
@@ -1163,6 +1166,9 @@ Singleton {
     }
     function playlist(id) {
         return PlaylistService.playlist(id);
+    }
+    function playlistMissing(id) {
+        return PlaylistService.missing(id);
     }
     function playlistTracks(id) {
         return PlaylistService.playlistTracks(id);

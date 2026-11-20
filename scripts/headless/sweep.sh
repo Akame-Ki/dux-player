@@ -13,13 +13,16 @@ repo=$(cd "$here/../.." && pwd)
 
 # scenario | environment | ERE over changed paths: the code it covers (AGENTS.md says what each one checks); slowest first
 TABLE='
+handle||^quickshell/(Modules/MainWindow|Widgets/DSheetHandle|Common/StyleSource)\.qml$
 motion||^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|SidePanel|M3EPlayer|BentoPlayer|PlayerArt|MediaSeekbar|SeekBlock|QueueList)\.qml$
 snappy|SERVER=1|^quickshell/Modules/(MainWindow|NowPlaying[A-Za-z]*|[A-Za-z]*Page|[A-Za-z]*Dialog|MediaMenu|MediaTile|MediaRow)\.qml$|^quickshell/Services/(Playlist|Settings|Catalog)Service\.qml$
 scroll||^quickshell/Modules/([A-Za-z]*Page|PageScroll|TrackList)\.qml$|^quickshell/Common/WheelInput\.js$
 navigation||^quickshell/Modules/(Router|MainWindow)\.qml$
 keys||^quickshell/Modules/(MainWindow|EscapeLayer|[A-Za-z]*Dialog|[A-Za-z]*Sheet|SearchBox|ScopedSearch)\.qml$|^quickshell/Common/EscapeStack\.js$|^quickshell/Widgets/
-downloads|SERVER=1|^quickshell/Modules/Settings/(DownloadsSettings|DownloadedTracks|OfflineRuleDialog|OfflineItemPicker)\.qml$|^quickshell/Modules/KeepOfflineRow\.qml$|^core/internal/cache/
+downloads|SERVER=1|^quickshell/Modules/Settings/(DownloadsSettings|DownloadedTracks|OfflineRuleDialog|OfflineItemPicker)\.qml$|^core/internal/cache/
+download|SERVER=1|^quickshell/Modules/(DownloadButton|PlayButtons|AlbumPage|ArtistPage|PlaylistPage)\.qml$
 library|SERVER=1|^quickshell/Modules/Settings/(LibrariesSettings|LibraryPage|LibraryDialog|LibraryServerDialog|ServerSignIn)\.qml$
+addserver|SERVER=1|^quickshell/Modules/Settings/(LibraryDialog|ServerSignIn)\.qml$|^core/internal/source/(jellyfin|subsonic)/
 builtin|DPLAYER_BACKEND=builtin|^core/internal/player/|^quickshell/Services/OutputService\.qml$|^quickshell/Modules/(Snackbar|DeviceButton|DeviceList|DevicePickerDialog)\.qml$|^quickshell/Modules/Settings/DevicesSettings\.qml$
 typing||^quickshell/Modules/(PageHeader|SearchBox|ScopedSearch|TrackList|BrowsePage|SearchPage)\.qml$|^quickshell/Common/RowModel\.qml$
 corners||^quickshell/Modules/Settings/|^quickshell/scripts/settings_index\.py$

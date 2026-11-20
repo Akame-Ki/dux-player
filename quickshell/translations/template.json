@@ -1750,6 +1750,20 @@
     "comment": ""
   },
   {
+    "term": "Continue",
+    "translation": "",
+    "context": "add server dialog, checks the address",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Continue anyway",
+    "translation": "",
+    "context": "add server dialog, goes on without a successful address check",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Continue listening",
     "translation": "",
     "context": "home shelf with the last queue",
@@ -2576,6 +2590,13 @@
     "comment": ""
   },
   {
+    "term": "Deletes the downloaded tracks from this device.",
+    "translation": "",
+    "context": "remove offline rule confirmation",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Deletes the playlist from %1 on all devices. Tracks stay in their libraries.",
     "translation": "",
     "context": "delete server playlist confirmation",
@@ -2674,6 +2695,13 @@
     "comment": ""
   },
   {
+    "term": "Download",
+    "translation": "",
+    "context": "button that keeps an item's tracks for offline play",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Download again",
     "translation": "",
     "context": "button that lets offline rules download an excluded track again",
@@ -2697,7 +2725,7 @@
   {
     "term": "Downloaded",
     "translation": "",
-    "context": "details field: whether a server track is cached",
+    "context": "button state: the item's tracks are kept offline | details field: whether a server track is cached",
     "reference": "",
     "comment": ""
   },
@@ -4494,6 +4522,13 @@
     "comment": ""
   },
   {
+    "term": "Move window",
+    "translation": "",
+    "context": "drag handle of the full view",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Multiple outputs",
     "translation": "",
     "context": "playback device settings section",
@@ -4879,6 +4914,13 @@
     "comment": ""
   },
   {
+    "term": "Not found",
+    "translation": "",
+    "context": "page title when an album, artist or playlist doesn't exist",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Not in the last",
     "translation": "",
     "context": "filter rule condition, followed by a number of days",
@@ -5022,6 +5064,13 @@
     "term": "Off",
     "translation": "",
     "context": "option that turns something off",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Off leaves decorations to the compositor. Applies to new windows.",
+    "translation": "",
+    "context": "window title bars toggle description",
     "reference": "",
     "comment": ""
   },
@@ -5866,6 +5915,13 @@
     "comment": ""
   },
   {
+    "term": "Remove download?",
+    "translation": "",
+    "context": "remove offline rule confirmation title",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Remove folder",
     "translation": "",
     "context": "library dialog folder action",
@@ -6552,6 +6608,13 @@
     "comment": ""
   },
   {
+    "term": "Search is in the navigation while title bars are off.",
+    "translation": "",
+    "context": "why the header search setting is off",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Search playlists",
     "translation": "",
     "context": "Playlists page search field",
@@ -6807,6 +6870,13 @@
     "term": "Shown on keyboard focus.",
     "translation": "",
     "context": "appearance setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Shown while title bars are off",
+    "translation": "",
+    "context": "why the Search navigation entry can't be hidden",
     "reference": "",
     "comment": ""
   },
@@ -7441,6 +7511,13 @@
     "comment": ""
   },
   {
+    "term": "That address isn't a server of this type",
+    "translation": "",
+    "context": "why a server address check failed",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "That isn't an http(s) server address",
     "translation": "",
     "context": "why a server connection test failed",
@@ -7721,6 +7798,13 @@
     "comment": ""
   },
   {
+    "term": "Title bars",
+    "translation": "",
+    "context": "window title bars toggle label",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Title style",
     "translation": "",
     "context": "element option: the title's typeface",
@@ -7738,6 +7822,13 @@
     "term": "Too many folders to watch (fs.inotify.max_user_watches); some changes show only after a rescan",
     "translation": "",
     "context": "library notice",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Top bar in full view",
+    "translation": "",
+    "context": "now playing setting",
     "reference": "",
     "comment": ""
   },

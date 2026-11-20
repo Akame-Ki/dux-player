@@ -9,6 +9,8 @@ Item {
 
     property real buttonHeight: Theme.buttonHeightM
     property real topPadding: 0
+    // a small line under the buttons, e.g. why one is disabled
+    property string note: ""
     default property alias extras: row.data
 
     signal play(bool shuffle)
@@ -24,7 +26,7 @@ Item {
         }
         return w + Math.max(0, n - 1) * row.spacing;
     }
-    implicitHeight: row.height + topPadding
+    implicitHeight: row.height + topPadding + (noteText.visible ? noteText.height : 0)
     width: Math.min(implicitWidth, parent?.width ?? implicitWidth)
 
     Flow {
@@ -48,5 +50,16 @@ Item {
             textColor: Theme.onSecondaryContainer
             onClicked: root.play(true)
         }
+    }
+
+    StyledText {
+        id: noteText
+        y: root.topPadding + row.height
+        width: root.parent?.width ?? root.width
+        visible: text !== ""
+        text: root.note
+        font.pixelSize: Theme.fontSizeSmall
+        color: Theme.surfaceVariantText
+        elide: Text.ElideRight
     }
 }

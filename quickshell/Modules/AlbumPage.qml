@@ -14,6 +14,7 @@ Item {
     readonly property var tracks: album ? PlayerService.albumTracks(album.id) : []
     readonly property var options: UiConfig.pageOptions("album", album?.id ?? "")
     readonly property bool editing: Router.editing
+    readonly property bool notFound: PlayerService.albumMissing(Router.itemId)
     // a disc header per disc, when the album has more than one
     readonly property bool byDisc: options.group === "disc" && tracks.some(t => t.disc !== tracks[0].disc)
     readonly property var shownTracks: byDisc ? tracks.map(t => Object.assign({}, t, {
@@ -57,6 +58,7 @@ Item {
 
                     DIconButton {
                         id: moreButton
+                        visible: !root.notFound
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: "more_vert"
                         tooltipText: I18n.tr("More", "track row menu button")
@@ -93,8 +95,15 @@ Item {
                     }
                 }
 
+                EmptyState {
+                    width: parent.width
+                    visible: root.notFound
+                    iconName: "search_off"
+                    title: I18n.tr("Not found", "page title when an album, artist or playlist doesn't exist")
+                }
+
                 DetailHero {
-                    visible: !root.editing
+                    visible: !root.editing && !root.notFound
                     eyebrow: I18n.tr("Album", "an album: page label, list column, ReplayGain mode")
                     title: root.album?.title ?? ""
                     cover: AlbumArt {
@@ -151,6 +160,7 @@ Item {
 
                     PlayButtons {
                         topPadding: Theme.spacingS
+                        note: download.blocker
                         onPlay: shuffle => PlayerService.playAlbum(root.album.id, shuffle)
 
                         DIconButton {
@@ -161,11 +171,12 @@ Item {
                             Accessible.name: tooltipText
                             onClicked: Router.pickPlaylist(root.tracks)
                         }
-                    }
 
-                    KeepOfflineRow {
-                        kind: "album"
-                        item: root.album
+                        DownloadButton {
+                            id: download
+                            kind: "album"
+                            item: root.album
+                        }
                     }
                 }
             }

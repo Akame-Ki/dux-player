@@ -26,6 +26,8 @@ Singleton {
     // kinds the daemon can add: local, subsonic, jellyfin
     property var libraryKinds: []
     property var albums: []
+    // library id -> true once its albums are in `albums`
+    property var albumLibraries: ({})
     // counts every replacement of `albums`, so a reload that keeps the length is still noticed
     property int albumsRevision: 0
     onAlbumsChanged: albumsRevision++
@@ -142,6 +144,12 @@ Singleton {
 
     function album(id) {
         return albums.find(a => a.id === id) ?? null;
+    }
+
+    // true once the albums of the id's library are in and none matches
+    function albumMissing(id) {
+        const lib = id.split(":")[0];
+        return librariesLoaded && !album(id) && (!enabledLibrary(lib) || albumLibraries[lib] === true);
     }
 
     function artist(id) {
@@ -1193,6 +1201,9 @@ Singleton {
                 const own = Catalog.groupBy(libAlbums, a => a.artistId);
                 root.artists = root.artists.filter(a => a.library !== id).concat(artistList.map(a => Catalog.artist(a, own[a.library + ":" + a.id])));
                 root.albums = root.albums.filter(a => a.library !== id).concat(libAlbums);
+                root.albumLibraries = Object.assign({}, root.albumLibraries, {
+                    [id]: true
+                });
             }));
         if (_paging[id] !== undefined || _allTracksWanted)
             _pageTracks(id);
@@ -1298,6 +1309,9 @@ Singleton {
         _loadGeneration[id] = (_loadGeneration[id] ?? 0) + 1;
         artists = artists.filter(a => a.library !== id);
         albums = albums.filter(a => a.library !== id);
+        albumLibraries = Object.assign({}, albumLibraries, {
+            [id]: false
+        });
         _forget(t => t.library === id);
         _publishTracks();
         delete _paging[id];

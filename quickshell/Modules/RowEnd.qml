@@ -136,6 +136,7 @@ Row {
                 RatingStars {
                     kind: end.favoriteKind
                     item: end.item
+                    keepsSpace: true
                 }
             }
 

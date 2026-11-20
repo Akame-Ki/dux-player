@@ -24,6 +24,7 @@ Item {
     property bool infoDone: false
     property bool playlistsDone: false
     readonly property bool settled: infoDone && playlistsDone
+    readonly property bool notFound: infoDone && artist === null
     property string imageUrl: ""
     readonly property var options: UiConfig.pageOptions("artist", artistId)
     readonly property bool editing: Router.editing
@@ -178,6 +179,35 @@ Item {
         lines: UiConfig.pageOptions("tracks", "").lines
         lineOptions: UiConfig.pageOptions("tracks", "").lineOptions ?? ({})
 
+        // after the albums or tracks, so the artist's own music comes first
+        footer: Component {
+            Column {
+                width: list.width
+                visible: root.settled && (root.info?.similar ?? []).length > 0 && !root.editing && !root.filtering
+                height: visible ? implicitHeight : 0
+                spacing: PlayerMetrics.sectionSpacing
+                topPadding: PlayerMetrics.sectionSpacing
+
+                SectionTitle {
+                    text: I18n.tr("Similar artists", "artist page section")
+                }
+
+                DHorizontalList {
+                    width: parent.width
+                    height: PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight
+                    spacing: Theme.spacingXS
+                    model: root.info?.similar ?? []
+
+                    delegate: MediaTile {
+                        required property var modelData
+                        width: PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2
+                        kind: "artist"
+                        item: modelData
+                    }
+                }
+            }
+        }
+
         header: Component {
             Column {
                 width: list.width
@@ -229,8 +259,15 @@ Item {
                     }
                 }
 
+                EmptyState {
+                    width: parent.width
+                    visible: root.notFound
+                    iconName: "search_off"
+                    title: I18n.tr("Not found", "page title when an album, artist or playlist doesn't exist")
+                }
+
                 DetailHero {
-                    visible: !root.editing
+                    visible: !root.editing && !root.notFound
                     eyebrow: I18n.tr("Artist", "track list column")
                     title: root.artist?.name ?? ""
                     cover: AlbumArt {
@@ -260,6 +297,7 @@ Item {
                     PlayButtons {
                         id: playButtons
                         topPadding: Theme.spacingS
+                        note: download.blocker
                         enabled: root.artist !== null
                         onPlay: shuffle => {
                             // a search plays the tracks it found
@@ -285,11 +323,12 @@ Item {
                                 item: root.artist
                             }
                         }
-                    }
 
-                    KeepOfflineRow {
-                        kind: "artist"
-                        item: root.artist
+                        DownloadButton {
+                            id: download
+                            kind: "artist"
+                            item: root.artist
+                        }
                     }
                 }
 
@@ -364,28 +403,8 @@ Item {
                     }
                 }
 
-                SectionTitle {
-                    visible: root.settled && (root.info?.similar ?? []).length > 0 && !root.editing
-                    text: I18n.tr("Similar artists", "artist page section")
-                }
-
-                DHorizontalList {
-                    width: parent.width
-                    visible: root.settled && (root.info?.similar ?? []).length > 0 && !root.editing
-                    height: visible ? PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2 + PlayerMetrics.gridCaptionHeight : 0
-                    spacing: Theme.spacingXS
-                    model: root.info?.similar ?? []
-
-                    delegate: MediaTile {
-                        required property var modelData
-                        width: PlayerMetrics.tileSizeS + PlayerMetrics.tileInset * 2
-                        kind: "artist"
-                        item: modelData
-                    }
-                }
-
                 DButtonGroup {
-                    visible: root.shownSections.length > 1
+                    visible: root.shownSections.length > 1 && !root.notFound
                     size: "small"
                     model: root.shownSections.map(t => UiConfig.typeLabel(t))
                     currentIndex: root.shownSections.indexOf(root.view)

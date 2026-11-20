@@ -38,6 +38,7 @@ Item {
         "type": "tracks"
     }
     property Component header: null
+    property Component footer: null
     // a ListView section property such as "day", or ""
     property string sectionProperty: ""
     // or one section name per track
@@ -255,6 +256,10 @@ Item {
         onAtYEndChanged: {
             if (atYEnd && count > 0)
                 root.endReached();
+        }
+        footer: Loader {
+            width: list.width
+            sourceComponent: root.footer
         }
         header: Column {
             width: list.width
