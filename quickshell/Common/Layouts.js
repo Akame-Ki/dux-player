@@ -378,6 +378,9 @@ function optionSchema(id, type, zoneId) {
             "size": {
                 "values": sizes,
                 "default": "m"
+            },
+            "columns": {
+                "values": ["one", "auto"]
             }
         };
     if (type === "cover" && zoneId !== "cover")

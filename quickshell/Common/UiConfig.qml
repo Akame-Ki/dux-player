@@ -753,7 +753,7 @@ Singleton {
 
     readonly property var pageTargets: Catalog.pageTargets
     // every entry, turned off ones included, in the order set in Settings
-    readonly property var navigation: Catalog.navEntries(effective.navigation, pageTargets, ["home", "playlists", "favorites", "tracks", "albums", "artists", "libraries"])
+    readonly property var navigation: Catalog.navEntries(effective.navigation, pageTargets, ["home", "playlists", "favorites", "tracks", "albums", "artists"])
     // while title bars are off the header's Search and Settings are entries here, and Search can't be hidden
     readonly property bool navigationForced: !StyleSource.windowTitleBars
     readonly property var shownNavigation: Catalog.forceNav(navigation, navigationForced).filter(e => !e.hidden && entryValid(e))
@@ -1105,6 +1105,10 @@ Singleton {
             return I18n.tr("Grid", "view layout option");
         case "list":
             return I18n.tr("List", "view layout option");
+        case "one":
+            return I18n.tr("One", "home shelf columns option");
+        case "auto":
+            return I18n.tr("Auto", "home shelf columns option");
         }
         return value;
     }

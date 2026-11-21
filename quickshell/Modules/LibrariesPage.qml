@@ -58,6 +58,7 @@ DFlickable {
                     id: card
                     required property var modelData
                     readonly property bool remote: PlayerService.isRemote(modelData.id)
+                    readonly property bool canShuffle: modelData.enabled && modelData.available && CatalogService.hasCapability(modelData.id, "randomTracks")
 
                     width: Math.min(column.width, PlayerMetrics.gridCellWidth * 2)
                     height: cardColumn.implicitHeight + pad * 2
@@ -67,6 +68,22 @@ DFlickable {
                     opacity: modelData.enabled ? 1 : Theme.disabledOpacity
                     Accessible.name: modelData.name
                     onClicked: Router.go("library", modelData.id)
+
+                    DActionButton {
+                        id: shuffleButton
+                        parent: card
+                        anchors.top: parent.top
+                        anchors.right: parent.right
+                        anchors.margins: card.pad
+                        visible: card.canShuffle
+                        iconName: "shuffle"
+                        tooltipText: I18n.tr("Shuffle library", "button that plays a whole library in random order")
+                        Accessible.name: tooltipText
+                        onClicked: PlayerService.shuffleTracks([], {
+                            "type": "library",
+                            "id": card.modelData.id
+                        }, false)
+                    }
 
                     Column {
                         id: cardColumn
@@ -89,7 +106,7 @@ DFlickable {
 
                             Column {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: parent.width - Theme.iconSizeLarge - parent.spacing
+                                width: parent.width - Theme.iconSizeLarge - parent.spacing - (card.canShuffle ? shuffleButton.width + parent.spacing : 0)
                                 spacing: Theme.spacingXXS
 
                                 StyledText {

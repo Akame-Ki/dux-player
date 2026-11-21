@@ -35,6 +35,8 @@ Singleton {
     readonly property real tilePlayButtonSize: (Theme.buttonHeightS + Theme.buttonHeightM) / 2
     readonly property real shelfArtSize: 152
     readonly property int shelfLimit: 12
+    // a Home list shelf set to Auto columns splits into columns at least this wide
+    readonly property int listColumnMinWidth: 480
     readonly property real detailArtSize: 232
     // an artist's biography before "Show more"
     readonly property int biographyLines: 4

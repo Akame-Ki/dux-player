@@ -18,6 +18,7 @@ Item {
     readonly property var shown: shelves.filter(s => !s.hidden && UiConfig.isKnown(s.type))
     readonly property var layouts: ["carousel", "grid", "list"]
     readonly property var sizes: ["s", "m", "l"]
+    readonly property var columnOptions: ["one", "auto"]
 
     function hasOptions(shelf) {
         return UiConfig.isKnown(shelf.type) && shelf.type !== "search" && shelf.type !== "continue";
@@ -237,6 +238,24 @@ Item {
                 onSelectionChanged: (index, selected) => {
                     if (selected)
                         root.setOption(optionsDialog.index, "size", root.sizes[index]);
+                }
+            }
+
+            StyledText {
+                visible: columnsGroup.visible
+                text: I18n.tr("Columns", "home shelf list columns section")
+                font.pixelSize: Theme.fontSizeMedium
+                color: Theme.surfaceVariantText
+            }
+
+            DButtonGroup {
+                id: columnsGroup
+                visible: optionsDialog.shelf?.options.layout === "list"
+                model: root.columnOptions.map(c => UiConfig.optionLabel(c))
+                currentIndex: Math.max(0, root.columnOptions.indexOf(optionsDialog.shelf?.options.columns ?? "one"))
+                onSelectionChanged: (index, selected) => {
+                    if (selected)
+                        root.setOption(optionsDialog.index, "columns", root.columnOptions[index]);
                 }
             }
         }

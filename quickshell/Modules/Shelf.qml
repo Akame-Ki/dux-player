@@ -93,6 +93,9 @@ Column {
     readonly property real tileWidth: size === "s" ? PlayerMetrics.tileSizeS : size === "l" ? PlayerMetrics.tileSizeL : PlayerMetrics.shelfArtSize
     readonly property real captionHeight: size === "l" ? PlayerMetrics.gridCaptionHeightL : PlayerMetrics.gridCaptionHeight
     readonly property int listLimit: size === "s" ? 3 : size === "l" ? 10 : 5
+    // "auto" fits as many columns of at least listColumnMinWidth as the width allows; the size stays rows per column
+    readonly property int listColumns: shelf.options.columns === "auto" ? Math.max(1, Math.floor((width + Theme.spacingS) / (PlayerMetrics.listColumnMinWidth + Theme.spacingS))) : 1
+    readonly property var listShown: layout === "list" ? items.slice(0, listLimit * listColumns) : []
     // a carousel holds enough tiles to fill its width; grid and list shuffle the shelfLimit they always did
     readonly property int shownLimit: layout === "carousel" ? Math.max(PlayerMetrics.shelfLimit, Math.ceil(carousel.width / (tileWidth + PlayerMetrics.tileInset * 2 + Theme.spacingXS))) : PlayerMetrics.shelfLimit
     readonly property int gridRows: size === "s" ? 1 : size === "l" ? 3 : 2
@@ -361,44 +364,62 @@ Column {
         }
     }
 
-    Column {
+    Row {
+        id: listRow
         width: parent.width
         visible: root.layout === "list" && root.source.type !== "continue"
-        spacing: Theme.groupedListGap
+        spacing: Theme.spacingS
+
+        // each column is its own connected group, filled top to bottom before the next
+        readonly property int columnCount: Math.max(1, Math.ceil(root.listShown.length / root.listLimit))
+        readonly property real columnWidth: (width - spacing * (columnCount - 1)) / columnCount
 
         Repeater {
-            id: rows
-            model: root.layout === "list" ? root.items.slice(0, root.listLimit) : []
+            model: root.layout === "list" ? listRow.columnCount : 0
 
-            Loader {
-                id: rowLoader
-                required property var modelData
+            Column {
+                id: listColumn
                 required property int index
-                width: parent?.width ?? 0
-                sourceComponent: root.kind === "track" ? trackRow : mediaRow
+                readonly property int offset: index * root.listLimit
+                width: listRow.columnWidth
+                spacing: Theme.groupedListGap
 
-                Component {
-                    id: trackRow
-                    TrackRow {
-                        track: rowLoader.modelData
-                        showArt: true
-                        lines: root.lines
-                        lineOptions: root.lineOptions
-                        firstInGroup: rowLoader.index === 0
-                        lastInGroup: rowLoader.index === rows.count - 1
-                        onActivated: root.play(rowLoader.index)
-                    }
-                }
+                Repeater {
+                    id: rows
+                    model: root.listShown.slice(listColumn.offset, listColumn.offset + root.listLimit)
 
-                Component {
-                    id: mediaRow
-                    MediaRow {
-                        kind: root.kind
-                        item: rowLoader.modelData
-                        lines: root.lines
-                        lineOptions: root.lineOptions
-                        firstInGroup: rowLoader.index === 0
-                        lastInGroup: rowLoader.index === rows.count - 1
+                    Loader {
+                        id: rowLoader
+                        required property var modelData
+                        required property int index
+                        readonly property int itemIndex: listColumn.offset + index
+                        width: parent?.width ?? 0
+                        sourceComponent: root.kind === "track" ? trackRow : mediaRow
+
+                        Component {
+                            id: trackRow
+                            TrackRow {
+                                track: rowLoader.modelData
+                                showArt: true
+                                lines: root.lines
+                                lineOptions: root.lineOptions
+                                firstInGroup: rowLoader.index === 0
+                                lastInGroup: rowLoader.index === rows.count - 1
+                                onActivated: root.play(rowLoader.itemIndex)
+                            }
+                        }
+
+                        Component {
+                            id: mediaRow
+                            MediaRow {
+                                kind: root.kind
+                                item: rowLoader.modelData
+                                lines: root.lines
+                                lineOptions: root.lineOptions
+                                firstInGroup: rowLoader.index === 0
+                                lastInGroup: rowLoader.index === rows.count - 1
+                            }
+                        }
                     }
                 }
             }
