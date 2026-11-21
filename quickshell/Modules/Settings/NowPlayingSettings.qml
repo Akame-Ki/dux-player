@@ -19,7 +19,7 @@ Item {
     readonly property var styleNames: [I18n.tr("Bento", "now playing player style"), I18n.tr("Material", "now playing player style")]
     // sub-views the settings search opens
     readonly property var subViews: surfaces
-    readonly property string subTitle: (editor.item as SurfaceEditor)?.subTitle ?? ""
+    readonly property string subTitle: (editor.item as SurfaceEditor)?.title ?? ""
     readonly property var starts: ["bar", "side", "full"]
     // the Lyrics option is left out while lyrics are off
     readonly property var openPanes: UiConfig.lyricsOn ? ["last", "lyrics", "queue", "cover"] : ["last", "queue", "cover"]
@@ -79,13 +79,8 @@ Item {
         subPage = id;
     }
 
-    // an element's options go back to its surface's editor
     function goBack() {
-        const surface = editor.item as SurfaceEditor;
-        if (surface && surface.optionsId !== "")
-            surface.optionsId = "";
-        else
-            subPage = "";
+        subPage = "";
     }
 
     function resetAll() {

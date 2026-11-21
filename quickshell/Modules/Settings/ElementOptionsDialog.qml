@@ -2,10 +2,11 @@ pragma ComponentBehavior: Bound
 
 import QtQuick
 import qs.Common
+import qs.Modules
 import qs.DCommon.Widgets
 
 // One element's options in a now-playing surface: its placement in a row that overflows, then its own options.
-SettingsPage {
+WindowDialog {
     id: root
 
     property var instance: null
@@ -79,8 +80,10 @@ SettingsPage {
         return next;
     }
 
-    SettingsCard {
-        title: root.instance ? UiConfig.elementLabel(root.instance.type) : ""
+    title: instance ? UiConfig.elementLabel(instance.type) : ""
+    acceptEnabled: false
+
+    SettingsGroup {
 
         SettingsRow {
             visible: root.placeable
@@ -159,4 +162,13 @@ SettingsPage {
             }
         }
     }
+
+    actions: [
+        DButton {
+            text: I18n.tr("Close", "dialog dismiss button")
+            backgroundColor: "transparent"
+            textColor: Theme.primary
+            onClicked: root.rejected()
+        }
+    ]
 }

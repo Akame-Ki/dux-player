@@ -13,6 +13,8 @@ Singleton {
     readonly property real compactBreakpoint: 860
     readonly property real overviewTwoColumnWidth: 640
     readonly property real contentMaxWidth: 920
+    // a page's edit block lays out in two columns from this width
+    readonly property real pageEditorTwoColumnWidth: 1400
     readonly property real pagePaddingV: Theme.spacingXL
     readonly property real paneMargin: Theme.windowInset
     readonly property real panePadding: Theme.spacingXL

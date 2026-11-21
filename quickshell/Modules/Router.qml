@@ -66,8 +66,13 @@ Singleton {
     // the shown page is in edit mode; set by editPage, cleared by any navigation
     property bool editing: false
     // what the page editor edits: 0 this page, 1 every page of its kind. Held here because a layout switch
-    // rebuilds the editor; any navigation resets it.
-    property int editScope: 0
+    // rebuilds the editor; the editor picks it once when edit mode starts, and ending edit mode resets it.
+    property int editScope: 1
+    property bool editScopePicked: false
+    onEditingChanged: {
+        editScope = 1;
+        editScopePicked = false;
+    }
     // how now playing shows right now, "bar" | "side": the saved default until the bar's move button overrides
     // it for this run; the expanded view is nowPlayingOpen on top of either
     readonly property string savedDock: UiConfig.nowPlaying.start === "side" ? "side" : "bar"
@@ -166,7 +171,6 @@ Singleton {
         itemId = id;
         restoreOffset = -1;
         editing = false;
-        editScope = 0;
     }
 
     // whether a list with a selection takes Ctrl+A: it was picked in last, or the last one has none

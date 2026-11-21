@@ -1185,7 +1185,7 @@
   {
     "term": "Auto",
     "translation": "",
-    "context": "element placement: moved into ⋮ when the row runs short",
+    "context": "element placement: moved into ⋮ when the row runs short | home shelf columns option",
     "reference": "",
     "comment": ""
   },
@@ -1696,7 +1696,7 @@
   {
     "term": "Columns",
     "translation": "",
-    "context": "page edit mode section: the columns of a track list",
+    "context": "home shelf list columns section | page edit mode section: the columns of a track list",
     "reference": "",
     "comment": ""
   },
@@ -2417,7 +2417,7 @@
   {
     "term": "Custom",
     "translation": "",
-    "context": "option for your own values",
+    "context": "Custom | option for your own values",
     "reference": "",
     "comment": ""
   },
@@ -5138,6 +5138,13 @@
     "comment": ""
   },
   {
+    "term": "One",
+    "translation": "",
+    "context": "home shelf columns option",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "One section stays shown",
     "translation": "",
     "context": "page edit mode: why the last shown section can't be hidden",
@@ -5190,13 +5197,6 @@
     "term": "Open now playing",
     "translation": "",
     "context": "now playing bar button",
-    "reference": "",
-    "comment": ""
-  },
-  {
-    "term": "Options",
-    "translation": "",
-    "context": "button opening an element's options under its row",
     "reference": "",
     "comment": ""
   },
@@ -6944,6 +6944,13 @@
     "comment": ""
   },
   {
+    "term": "Shuffle library",
+    "translation": "",
+    "context": "button that plays a whole library in random order",
+    "reference": "",
+    "comment": ""
+  },
+  {
     "term": "Side panel",
     "translation": "",
     "context": "now playing placement option",
@@ -8053,6 +8060,13 @@
     "term": "Up to 130%. Loud tracks may distort.",
     "translation": "",
     "context": "playback setting description",
+    "reference": "",
+    "comment": ""
+  },
+  {
+    "term": "Use built-in key",
+    "translation": "",
+    "context": "Last.fm sign-in action",
     "reference": "",
     "comment": ""
   },

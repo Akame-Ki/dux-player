@@ -7,7 +7,7 @@ import qs.DCommon.Widgets
 import qs.Widgets
 
 // The editor of one now-playing surface: its zones of elements, the side panel's "Follow the bottom bar", its
-// problems, and an options page per element.
+// problems, and an options dialog per element.
 Item {
     id: root
 
@@ -15,9 +15,9 @@ Item {
     property string title: ""
     property Component preview: null
     property size previewSize: Qt.size(1, 1)
-    // the element whose options page is open
+    // the element whose options dialog is open
     property string optionsId: ""
-    // opening another surface (Customize from a view) starts on its editor, not on the last options page
+    // opening another surface (Customize from a view) closes the last element's options
     onSurfaceIdChanged: optionsId = ""
     property int revision: 0
 
@@ -30,7 +30,6 @@ Item {
     readonly property var target: findInstance(optionsId)
     // reads revision so a refused move rebuilds the rows
     readonly property var editorZones: revision >= 0 ? zoneMeta.map(z => zoneModel(z)) : []
-    readonly property string subTitle: target ? UiConfig.elementLabel(target.instance.type) : title
 
     function zoneInfo(zoneId) {
         return zoneMeta.find(z => z.id === zoneId) ?? null;
@@ -264,7 +263,6 @@ Item {
 
     SettingsPage {
         id: page
-        visible: root.target === null
 
         SurfaceCard.Preview {
             width: parent.width
@@ -361,12 +359,20 @@ Item {
         onConfirmed: run?.()
     }
 
-    ElementOptionsPage {
+    ElementOptionsDialog {
         id: optionsPage
-        visible: root.target !== null
+        host: root
         instance: root.target?.instance ?? null
         placeable: root.target ? root.placeable(root.target.zone, root.target.entry) : false
         schema: root.target?.entry?.options ?? ({})
         onEdited: inst => root.updateInstance(inst)
+        onRejected: root.optionsId = ""
+    }
+
+    // a dialog that closes itself drops a plain binding of opened
+    Binding {
+        target: optionsPage
+        property: "opened"
+        value: root.target !== null
     }
 }
