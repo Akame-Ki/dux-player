@@ -141,7 +141,7 @@ type job struct {
 
 type Cache struct {
 	cfg    Config
-	db     *sql.DB
+	db     *library.DB
 	client *http.Client
 	stall  time.Duration
 

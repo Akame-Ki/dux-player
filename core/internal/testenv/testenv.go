@@ -19,3 +19,15 @@ func NeedsPermissions(t testing.TB) {
 	}
 	t.Skip("root ignores file permissions")
 }
+
+// maxTempDir leaves room under a unix socket's 107-byte path limit for a
+// test's name and a socket file.
+const maxTempDir = 40
+
+// ShortTempDir points TMPDIR at /tmp when the current one is too long for a
+// socket under t.TempDir(). Call it from TestMain.
+func ShortTempDir() {
+	if len(os.TempDir()) > maxTempDir {
+		_ = os.Setenv("TMPDIR", "/tmp")
+	}
+}

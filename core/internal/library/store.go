@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"slices"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -157,7 +158,7 @@ func markCols(kind, table string) string {
 }
 
 type Store struct {
-	db       *sql.DB
+	db       *DB
 	onChange atomic.Pointer[func(libID string, d *Delta)]
 	// playable is the file extensions the player plays; nil plays all.
 	playable atomic.Pointer[[]string]
@@ -199,9 +200,42 @@ func Open(ctx context.Context, path string) (*Store, error) {
 	return &Store{db: db}, nil
 }
 
+// DB is an SQLite database whose Close stops its background compaction and
+// waits for it, so nothing writes to the files after Close.
+type DB struct {
+	*sql.DB
+	name   string
+	mu     sync.Mutex
+	ctx    context.Context
+	cancel context.CancelFunc
+	bg     sync.WaitGroup
+}
+
+// compactLater runs Compact in the background unless the database is closed.
+func (d *DB) compactLater() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	if d.ctx.Err() != nil {
+		return
+	}
+	d.bg.Go(func() {
+		if err := Compact(d.ctx, d.DB); err != nil && d.ctx.Err() == nil {
+			log.Warnf("shrink %s: %v", d.name, err)
+		}
+	})
+}
+
+func (d *DB) Close() error {
+	d.mu.Lock()
+	d.cancel()
+	d.mu.Unlock()
+	d.bg.Wait()
+	return d.DB.Close()
+}
+
 // OpenDB opens an SQLite database and brings its schema up to date: each
 // migration entry upgrades it by one version.
-func OpenDB(ctx context.Context, path string, migrations []string) (*sql.DB, error) {
+func OpenDB(ctx context.Context, path string, migrations []string) (*DB, error) {
 	// Immediate transactions take the write lock up front, where busy_timeout
 	// waits for it; WAL lets the other connections read meanwhile.
 	dsn := "file:" + path + "?_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)&_pragma=busy_timeout(5000)&_pragma=foreign_keys(ON)&_txlock=immediate"
@@ -212,25 +246,23 @@ func OpenDB(ctx context.Context, path string, migrations []string) (*sql.DB, err
 	for _, p := range []string{path, path + "-wal", path + "-shm"} {
 		_ = os.Chmod(p, 0o600)
 	}
-	db, err := sql.Open("sqlite", dsn)
+	sqlDB, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", filepath.Base(path), err)
 	}
-	db.SetMaxOpenConns(4)
-	if err := migrate(ctx, db, migrations); err != nil {
-		db.Close()
+	sqlDB.SetMaxOpenConns(4)
+	if err := migrate(ctx, sqlDB, migrations); err != nil {
+		sqlDB.Close()
 		return nil, fmt.Errorf("%s: %w", filepath.Base(path), err)
 	}
+	db := &DB{DB: sqlDB, name: filepath.Base(path)}
+	db.ctx, db.cancel = context.WithCancel(context.WithoutCancel(ctx))
 	// An old database still has auto_vacuum off and needs a one-time VACUUM,
 	// which can take seconds on a big one: do it after startup.
 	var mode, free int
 	if db.QueryRowContext(ctx, "PRAGMA auto_vacuum").Scan(&mode) == nil &&
 		db.QueryRowContext(ctx, "PRAGMA freelist_count").Scan(&free) == nil && (mode == 0 || free > 0) {
-		go func() {
-			if err := Compact(ctx, db); err != nil {
-				log.Warnf("shrink %s: %v", filepath.Base(path), err)
-			}
-		}()
+		db.compactLater()
 	}
 	return db, nil
 }
@@ -508,7 +540,7 @@ func (s *Store) Path(ctx context.Context, libID, id string) (string, bool) {
 // Finish. It commits every batchFor, so a long scan never holds the write
 // lock for long; the generation keeps the partial commits consistent.
 type Batch struct {
-	db     *sql.DB
+	db     *DB
 	tx     *sql.Tx
 	opened time.Time
 	libID  string
@@ -692,11 +724,7 @@ func (b *Batch) Finish(ctx context.Context, scope ...string) (int, error) {
 		return 0, err
 	}
 	if removed > 0 {
-		go func() {
-			if err := Compact(context.WithoutCancel(ctx), b.db); err != nil {
-				log.Warnf("shrink library: %v", err)
-			}
-		}()
+		b.db.compactLater()
 	}
 	return int(removed), nil
 }

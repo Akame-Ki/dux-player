@@ -19,7 +19,13 @@ import (
 
 	"github.com/Conava/dux-player/core/internal/player"
 	"github.com/Conava/dux-player/core/internal/source"
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
+
+func TestMain(m *testing.M) {
+	testenv.ShortTempDir()
+	os.Exit(m.Run())
+}
 
 type fakePlayer struct {
 	mu    sync.Mutex

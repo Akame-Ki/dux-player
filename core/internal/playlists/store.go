@@ -115,7 +115,7 @@ type Playlist struct {
 	Tracks     []source.Track `json:"tracks,omitempty"`
 }
 
-type Store struct{ db *sql.DB }
+type Store struct{ db *library.DB }
 
 func Open(ctx context.Context, path string) (*Store, error) {
 	db, err := library.OpenDB(ctx, path, migrations)

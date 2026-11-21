@@ -17,6 +17,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/Conava/dux-player/core/internal/source"
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
 
 // With FAKE_MPV_STALL_MS set, the test binary acts as mpv: it answers on
@@ -29,6 +30,7 @@ func TestMain(m *testing.M) {
 	}
 	// Keeps the tests, their mpv and the built-in player off the host's
 	// PipeWire and PulseAudio.
+	testenv.ShortTempDir()
 	os.Setenv("PIPEWIRE_REMOTE", filepath.Join(os.TempDir(), "dplayer-test-no-pipewire"))
 	os.Setenv("PULSE_SERVER", filepath.Join(os.TempDir(), "dplayer-test-no-pulse"))
 	os.Exit(m.Run())

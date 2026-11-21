@@ -3,13 +3,21 @@ package keyring
 import (
 	"errors"
 	"net"
+	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
+
+func TestMain(m *testing.M) {
+	testenv.ShortTempDir()
+	os.Exit(m.Run())
+}
 
 type fakeService struct{ items map[string]string }
 

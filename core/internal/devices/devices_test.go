@@ -174,7 +174,10 @@ func TestDefaultOutputGoingAwayPauses(t *testing.T) {
 		require.NoError(t, s.SetPauseOnDisconnect(context.Background(), tc.enabled))
 		s.defaults.set(tc.on)
 		s.OnDeviceList(json.RawMessage(both))
-		require.Eventually(t, func() bool { return len(s.State().Devices) >= 3 }, time.Second, 5*time.Millisecond, tc.name)
+		// The list is latest-wins: the next one must not replace it before the loop has seen the headset.
+		require.Eventually(t, func() bool {
+			return slices.ContainsFunc(s.State().Devices, func(d Device) bool { return d.ID == "headset" })
+		}, time.Second, 5*time.Millisecond, tc.name)
 		s.OnDeviceList(json.RawMessage(speakerList))
 		pauses := func() int {
 			p.mu.Lock()

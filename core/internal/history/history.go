@@ -6,7 +6,6 @@ package history
 import (
 	"cmp"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -80,7 +79,7 @@ type stat struct {
 }
 
 type Store struct {
-	db  *sql.DB
+	db  *library.DB
 	now func() time.Time
 	// Server says whether a library is a server; its items keep the play
 	// counts the server reports. Set before the first Annotate.
@@ -191,7 +190,7 @@ func (s *Store) Prune(ctx context.Context, months int) error {
 	if n, _ := res.RowsAffected(); n == 0 {
 		return nil
 	}
-	if err := library.Compact(ctx, s.db); err != nil {
+	if err := library.Compact(ctx, s.db.DB); err != nil {
 		log.Warnf("shrink history: %v", err)
 	}
 	return s.reload(ctx)
@@ -201,7 +200,7 @@ func (s *Store) Clear(ctx context.Context) error {
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM plays"); err != nil {
 		return err
 	}
-	if err := library.Compact(ctx, s.db); err != nil {
+	if err := library.Compact(ctx, s.db.DB); err != nil {
 		log.Warnf("shrink history: %v", err)
 	}
 	return s.reload(ctx)
