@@ -10,7 +10,7 @@ fact() { # fact NAME ACTUAL WANTED
     echo "FAIL $1: got '$2', wanted '$3'" | tee -a "$W/out/facts.txt"
 }
 # rules: the number of album rules
-rules() { rpc cache.status '{}' 100000 | python3 -I -c 'import json,sys; print(len([r for r in json.load(sys.stdin)["result"]["rules"] if r["kind"] == "album"]))'; }
+rules() { rpc cache.status '{}' | python3 -I -c 'import json,sys; print(len([r for r in json.load(sys.stdin)["result"]["rules"] if r["kind"] == "album"]))'; }
 # point LABEL: the screen point of the item with that tooltip, "" when none
 point() {
     read -r px py < <(ask pagePoint "$1")
@@ -21,7 +21,7 @@ print(*c["at"])')
     echo "$((wx + px)) $((wy + py))"
 }
 
-lib=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys; print([l["id"] for l in json.load(sys.stdin)["result"] if l["kind"] == "subsonic"][0])' 2>/dev/null)
+lib=$(rpc libraries.list '{}' | python3 -I -c 'import json,sys; print([l["id"] for l in json.load(sys.stdin)["result"] if l["kind"] == "subsonic"][0])' 2>/dev/null)
 if [ -z "$lib" ]; then
     echo "FAIL no server library (run with SERVER=1)" | tee -a "$W/out/facts.txt"
     exit 1

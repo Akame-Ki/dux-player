@@ -27,7 +27,7 @@ excluded() { rpc cache.tracks "{\"library\":\"$lib\",\"excluded\":true}" 100000 
 # rows of the open sub-page, in order: the nth press of "Delete" is the row at that place in cache.tracks
 place() { rpc cache.tracks "{\"library\":\"$lib\",\"limit\":500}" 100000 | jsonq "[i['track']['id'] for i in d['items']].index('$1')"; }
 
-lib=$(rpc libraries.list '{}' 100000 | jsonq '[l["id"] for l in d if l["kind"] == "subsonic"][0]' 2>/dev/null)
+lib=$(rpc libraries.list '{}' | jsonq '[l["id"] for l in d if l["kind"] == "subsonic"][0]' 2>/dev/null)
 if [ -z "$lib" ]; then
     echo "FAIL no server library (run with SERVER=1)" | tee -a "$W/out/facts.txt"
     exit 1
@@ -61,7 +61,7 @@ fact "Favorites picked in the sheet" "$(ask pick Favorites)" true
 sleep 1
 shot downloads-add-taken-scope
 # Favorites exists for all servers, so adding it again for All servers is blocked
-rules() { rpc cache.status '{}' 100000 | jsonq 'len(d["rules"])'; }
+rules() { rpc cache.status '{}' | jsonq 'len(d["rules"])'; }
 fact "rules before Add" "$(rules)" 2
 fact "Add found in the rule dialog" "$(ask press Add 0)" 1
 sleep 1
@@ -80,7 +80,7 @@ fact "no scope choice when adding" "$(ask shown Scope)" 0
 fact "library rule added" "$(ask press Add 0)" 1
 settle_rules() { [ "$(rules)" = "$1" ] && echo 1; }
 settle settle_rules 3
-fact "rules after adding from the library card" "$(rpc cache.status '{}' 100000 | jsonq '[r["library"] for r in d["rules"] if r["kind"] == "played"]')" "['$lib']"
+fact "rules after adding from the library card" "$(rpc cache.status '{}' | jsonq '[r["library"] for r in d["rules"] if r["kind"] == "played"]')" "['$lib']"
 sleep 1
 fact "Edit of the General rule found" "$(ask press Edit 0)" 2
 sleep 1
@@ -119,7 +119,7 @@ rpc libraries.scan "{\"id\":\"$lib\"}" >/dev/null
 sleep 8
 fact "excluded track not fetched by the next sync" "$(count)" 7
 fact "still excluded after the sync" "$(excluded)" 1
-fact "status counts the exclusion" "$(rpc cache.status '{}' 100000 | jsonq '[l["excluded"] for l in d["libraries"] if l["library"] == "'"$lib"'"][0]')" 1
+fact "status counts the exclusion" "$(rpc cache.status '{}' | jsonq '[l["excluded"] for l in d["libraries"] if l["library"] == "'"$lib"'"][0]')" 1
 
 ui settings downloads
 sleep 2
@@ -147,7 +147,7 @@ sleep 1
 fact "header closes its card" "$(ask shown "Downloaded tracks")" 0
 
 # a turned-off library with a rule keeps its card, says it is off and takes no new rules
-two=$(rpc libraries.list '{}' 100000 | jsonq '[l["id"] for l in d if l["name"] == "Server Two"][0]')
+two=$(rpc libraries.list '{}' | jsonq '[l["id"] for l in d if l["name"] == "Server Two"][0]')
 rpc cache.addRule "{\"library\":\"$two\",\"kind\":\"album\",\"id\":\"al-1-2\"}" >/dev/null
 rpc libraries.setEnabled "{\"library\":\"$two\",\"enabled\":false}" >/dev/null
 sleep 2

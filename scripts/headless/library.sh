@@ -22,12 +22,12 @@ settle() {
     return 1
 }
 
-lib=$(rpc libraries.list '{}' 100000 | jsonq '[l["id"] for l in d if l["kind"] == "subsonic"][0]' 2>/dev/null)
+lib=$(rpc libraries.list '{}' | jsonq '[l["id"] for l in d if l["kind"] == "subsonic"][0]' 2>/dev/null)
 if [ -z "$lib" ]; then
     echo "FAIL no server library (run with SERVER=1)" | tee -a "$W/out/facts.txt"
     exit 1
 fi
-local=$(rpc libraries.list '{}' 100000 | jsonq '[l["id"] for l in d if l["kind"] == "local"][0]')
+local=$(rpc libraries.list '{}' | jsonq '[l["id"] for l in d if l["kind"] == "local"][0]')
 
 ui settings "libraries/$local"
 sleep 2
@@ -58,11 +58,11 @@ shot library-name-dialog
 wtype Renamed
 sleep 0.5
 wtype -k Return
-named() { [ "$(rpc libraries.list '{}' 100000 | jsonq "[l['name'] for l in d if l['id'] == '$lib'][0]")" = Renamed ] && echo 1; }
+named() { [ "$(rpc libraries.list '{}' | jsonq "[l['name'] for l in d if l['id'] == '$lib'][0]")" = Renamed ] && echo 1; }
 settle named
-fact "renamed through the Name dialog" "$(rpc libraries.list '{}' 100000 | jsonq "[l['name'] for l in d if l['id'] == '$lib'][0]")" Renamed
+fact "renamed through the Name dialog" "$(rpc libraries.list '{}' | jsonq "[l['name'] for l in d if l['id'] == '$lib'][0]")" Renamed
 
-off() { rpc scrobble.status '{}' 100000 | jsonq "int('$lib' in (d.get('noServerLibraries') or []))"; }
+off() { rpc scrobble.status '{}' | jsonq "int('$lib' in (d.get('noServerLibraries') or []))"; }
 fact "plays reported to the server" "$(off)" 0
 sleep 1
 fact "scrobble switch found" "$([ "$(ask press "Report plays to Renamed" 0)" -ge 1 ] && echo 1)" 1

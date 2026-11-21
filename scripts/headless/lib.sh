@@ -12,7 +12,7 @@
 #   ui NAME ARGS     any function of the headless IPC target in run.sh: ui open album ID, ui settings PAGE, ui playerLook attached,
 #                    ui pageOptions tracks '{"lines":["format"]}', ui addElement fullBento title '{"type":"text"}'
 #   dp ARGS          the dplayer CLI against this sandbox: dp play "$W/music", dp pause
-#   rpc METHOD JSON [MAX]  one daemon IPC call; prints the reply, cut at MAX characters (2000)
+#   rpc METHOD JSON  one daemon IPC call; prints the whole reply
 #   pointer m X Y | c | r | d | u | D | U | s MS | w NOTCHES   through a real virtual pointer: move, click, right click,
 #                    left press and release, right press and release, pause, wheel. Lines of one write keep their
 #                    timing: pointer "$(printf 'D\ns 30\nU')"
@@ -34,7 +34,7 @@ wait_for_daemon() {
 }
 
 rpc() {
-    python3 -I - "$1" "$2" "${3:-2000}" <<'P'
+    python3 -I - "$1" "$2" <<'P'
 import glob, json, os, socket, sys
 s = socket.socket(socket.AF_UNIX)
 s.connect(sorted(glob.glob(os.environ["XDG_RUNTIME_DIR"] + "/dplayer*.sock"))[-1])
@@ -42,7 +42,7 @@ f = s.makefile("rwb")
 f.readline()
 f.write(json.dumps({"id": 1, "method": sys.argv[1], "params": json.loads(sys.argv[2])}).encode() + b"\n")
 f.flush()
-print(f.readline().decode().strip()[:int(sys.argv[3])])
+print(f.readline().decode().strip())
 P
 }
 

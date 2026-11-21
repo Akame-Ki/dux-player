@@ -95,7 +95,7 @@ if [ -n "${SERVER:-}" ]; then
     [ -n "$server" ] || { echo "couldn't add the server library: $added"; exit 1; }
     synced=
     for _ in $(seq 1 120); do
-        rpc libraries.list '{}' 1000000 | python3 -Ic 'import json, sys; sys.exit(not any(l.get("synced") for l in json.load(sys.stdin)["result"] if l["id"] == sys.argv[1]))' "$server" && synced=1 && break
+        rpc libraries.list '{}' | python3 -Ic 'import json, sys; sys.exit(not any(l.get("synced") for l in json.load(sys.stdin)["result"] if l["id"] == sys.argv[1]))' "$server" && synced=1 && break
         sleep 0.5
     done
     [ -n "$synced" ] || { echo "the server library did not finish its catalog sync"; exit 1; }

@@ -21,12 +21,12 @@ sleep 0.5
 dp play "$W/music" >/dev/null
 sleep 2
 
-# the first entry deleted with no history to go back to, by Delete page at 516,785 and the dialog's Delete at 1498,768
+# the first entry deleted with no history to go back to, by Delete page at 753,760 and the dialog's Delete at 1498,768
 ui editFirstView
 sleep 2
 pointer w 30
 sleep 1.5
-click 516 785
+click 753 760
 sleep 1.5
 click 1498 768
 sleep 1.5

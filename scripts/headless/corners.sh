@@ -30,7 +30,7 @@ for page in libraries downloads general appearance pages nowplaying nowplaying/b
 done
 
 # a library's own page: the local one always, the server's with SERVER=1
-libs=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys
+libs=$(rpc libraries.list '{}' | python3 -I -c 'import json,sys
 d = json.load(sys.stdin)
 for l in (d.get("result", d) if isinstance(d, dict) else d):
     print(l["kind"], l["id"])')
@@ -39,7 +39,7 @@ ui settings "libraries/$local"
 audit "libraries/<local>"
 shot library-local
 
-server=$(rpc libraries.list '{}' 100000 | python3 -I -c 'import json,sys
+server=$(rpc libraries.list '{}' | python3 -I -c 'import json,sys
 d = json.load(sys.stdin)
 for l in (d.get("result", d) if isinstance(d, dict) else d):
     if l.get("kind") == "subsonic":

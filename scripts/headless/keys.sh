@@ -94,37 +94,6 @@ expect "view kept in the field" "$(view)" "false"
 key -k Escape
 key -k Escape
 
-element sleep bar
-sleep 1
-s=$(state)
-key -k space
-key -k f
-expect "space under a dialog" "$(state)" "$s"
-expect "f under a dialog" "$(view)" "false"
-key -k Escape
-shot keys
-
-# the seekbar reached by Tab: Space stays the player's, the arrows are the bar's
-dp pause >/dev/null
-sleep 0.5
-for _ in $(seq 1 40); do
-    [ "$(ask focusRole | tr -d '\n')" = 51 ] && break
-    wtype -M shift -k Tab -m shift
-    sleep 0.1
-done
-expect "Tab reaches the seekbar" "$(ask focusRole | tr -d '\n')" "51"
-key -k Right
-p=$(pos)
-key -k Left
-[ "$(pos)" -lt "$p" ] && n=back || n=same
-expect "left on the seekbar" "$n" "back"
-key -k space
-expect "space on the seekbar" "$(state)" "playing"
-
-for s in Ctrl+Left Ctrl+Right Ctrl+Space Alt+Left Alt+Right; do
-    expect "$s can't be a search shortcut" "$(ask shortcutFree "$s" | tr -d '\n')" "false"
-done
-
 # one key at a time, or a pair like Space and Ctrl+Space would cancel out
 covered() {
     expand false
@@ -149,6 +118,33 @@ covered() {
     key -M ctrl -k space -m ctrl
     expect "ctrl+space under $1" "$(state)" "$s"
 }
+
+element sleep bar
+sleep 1
+covered "a dialog"
+key -k Escape
+shot keys
+
+# the seekbar reached by Tab: Space stays the player's, the arrows are the bar's
+dp pause >/dev/null
+sleep 0.5
+for _ in $(seq 1 40); do
+    [ "$(ask focusRole | tr -d '\n')" = 51 ] && break
+    wtype -M shift -k Tab -m shift
+    sleep 0.1
+done
+expect "Tab reaches the seekbar" "$(ask focusRole | tr -d '\n')" "51"
+key -k Right
+p=$(pos)
+key -k Left
+[ "$(pos)" -lt "$p" ] && n=back || n=same
+expect "left on the seekbar" "$n" "back"
+key -k space
+expect "space on the seekbar" "$(state)" "playing"
+
+for s in Ctrl+Left Ctrl+Right Ctrl+Space Alt+Left Alt+Right; do
+    expect "$s can't be a search shortcut" "$(ask shortcutFree "$s" | tr -d '\n')" "false"
+done
 
 # Bento's Play on sheet over the full view. Space goes last: the sheet's focused back button takes it and closes the sheet.
 sheet() { ask playOnOpen | tr -d '\n'; }
@@ -201,8 +197,8 @@ dp pause >/dev/null
 go tracks
 ui edit tracks
 sleep 2
-# Sort by, at 2264,333; a click anywhere closes it
-click 2264 333
+# Sort by, at 1093,333 (left column of the two-column edit block); a click anywhere closes it
+click 1093 333
 sleep 1
 shot keys-dropdown
 covered "a dropdown"
@@ -210,6 +206,15 @@ key -k Down
 key -k Return
 sleep 1
 shot keys-dropdown-picked
+
+# the Artist column's row, at 1787,301, opens its options dialog; Escape closes it
+click 1787 301
+sleep 1
+shot keys-column-dialog
+covered "a column's options dialog"
+key -k Escape
+sleep 0.5
+shot keys-column-closed
 go tracks
 
 # the window's overflow menu, at 2417,49: Settings, Quit

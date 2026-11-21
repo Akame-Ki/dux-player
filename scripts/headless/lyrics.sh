@@ -110,8 +110,10 @@ pointer m $((x + w / 4)) $((y + h / 2))
 sleep 0.3
 pointer w 3
 cap bento-follow-button
-click $((x + 410)) $((y + 900))
+read -r fx fy <<<"$(lyrics_menu '"%d %d" % tuple(d["follow"])')"
+click $((x + fx)) $((y + fy))
 cap bento-followed-again
+fact "follow button resumes following" "$(lyrics_menu 'd["follow"]')" None
 pointer m $((x + w - 20)) $((y + h / 2))
 
 # the timing slider keeps the menu open; two steps later move every line by 1 s, so the line before is centred again

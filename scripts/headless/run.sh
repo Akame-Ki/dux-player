@@ -359,7 +359,8 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 for (const child of item.children)
                     walk(child);
             };
-            walk(settingsLoader.item?.contentItem);
+            // from the window's root item: dialogs move there, next to the content item
+            walk(settingsLoader.item?.contentItem?.Window.window?.contentItem);
             return faults.join("\n");
         }
         // one line per home shelf: type, shown or hidden, item count and the item ids
@@ -429,6 +430,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 return [Math.round(p.x), Math.round(p.y)];
             };
             const button = kids(view).find(i => i.iconName === "more_vert");
+            const follow = kids(view).find(i => i.iconName === "my_location" && i.visible);
             const menu = kids(view).find(i => i.sources !== undefined && i.opened !== undefined);
             const popup = menu?.opened ? menu.children.find(c => c.item)?.item : null;
             const rows = {};
@@ -456,6 +458,7 @@ cat >>"$W/tree/shell.qml" <<'Q'
                 "infos": infos,
                 "centre": centre,
                 "button": button ? point(button) : null,
+                "follow": follow ? point(follow) : null,
                 "open": menu?.opened === true,
                 "offset": PlayerService.lyricsOffset,
                 "width": popup ? popup.menuWidth : 0,
@@ -802,8 +805,10 @@ fi
 # Icon lookups only cost what they cost on a real desktop with a real theme.
 [ -f "$HOME/.config/qtengine/config.json" ] && cp "$HOME/.config/qtengine/config.json" "$W/config/qtengine/"
 
+# The dead proxy keeps lyrics providers and artist lookups off the network (localhost, the fake server, bypasses it). Switching the lyrics setting off instead would drop the menu rows the lyrics scenario checks.
 env -i LANG=C.UTF-8 USER="$USER" HOME="$W/home" PATH="$W/bin:$repo/core/bin:/usr/bin:/bin" XDG_RUNTIME_DIR="$W/rt" \
     XDG_CONFIG_HOME="$W/config" XDG_STATE_HOME="$W/state" XDG_CACHE_HOME="$W/cache" XDG_DATA_HOME="$W/data" \
+    HTTP_PROXY=http://127.0.0.1:9 HTTPS_PROXY=http://127.0.0.1:9 \
     XDG_DATA_DIRS="${XDG_DATA_DIRS:-/usr/share}" QT_QPA_PLATFORMTHEME=qtengine DPLAYER_WINRULES=off DPLAYER_CAST=off DPLAYER_BACKEND="${DPLAYER_BACKEND:-}" \
     DPLAYER_DISABLE_HOT_RELOAD=1 HYPRLAND_NO_SD_NOTIFY=1 HYPRLAND_NO_SD_VARS=1 HYPRLAND_NO_CRASHREPORTER=1 \
     W="$W" LIB="$here/lib.sh" SCENARIO="$scenario" SERVER="${SERVER:-}" GAP_MAX="${GAP_MAX:-}" SEEN_MAX="${SEEN_MAX:-}" DELAY="${DELAY:-}" SETTLE="${SETTLE:-}" \

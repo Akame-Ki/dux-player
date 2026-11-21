@@ -30,7 +30,7 @@ done
 
 # The focus goes when rows are rebuilt with some left, so each case has to pass through that: all to one for tracks
 # ("Track 2"), none back to one for the only album. Going straight to no rows proves nothing.
-for page in tracks:1467,468 albums:1450,532; do
+for page in tracks:998,468 albums:998,534; do
     name=${page%%:*}
     at=${page##*:}
     go "$name"
