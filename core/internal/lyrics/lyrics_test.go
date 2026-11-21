@@ -60,7 +60,8 @@ func (l libs) Tracks(_ context.Context, refs []source.Ref) ([]source.Track, erro
 }
 
 // Local tracks find their sidecar file, server tracks their server's
-// lyrics; no provider is on, so nothing touches the network.
+// lyrics, in the lookup and the source menu; no provider is on, so nothing
+// touches the network.
 func TestLookupUsesSidecarsAndTheServer(t *testing.T) {
 	dir := t.TempDir()
 	require.NoError(t, os.WriteFile(filepath.Join(dir, "song.flac"), nil, 0o644))
@@ -93,6 +94,10 @@ func TestLookupUsesSidecarsAndTheServer(t *testing.T) {
 		}
 		require.NotEmpty(t, res.Synced)
 		assert.Equal(t, tt.text, res.Synced[0].Text)
+		choices, err := s.Choices(context.Background(), tt.ref)
+		require.NoError(t, err)
+		require.Len(t, choices, 1, tt.ref.ID)
+		assert.Equal(t, string(tt.source), choices[0].Source)
 	}
 }
 
@@ -356,7 +361,7 @@ func TestChosenLyricsStayWithTheTrack(t *testing.T) {
 	assert.Equal(t, "line", choices[0].Timing)
 	data, err := json.Marshal(choices[0])
 	require.NoError(t, err)
-	assert.Contains(t, string(data), `"status":{"kind":"not-measured"}`, "nothing was decided for the track yet")
+	assert.Contains(t, string(data), `"status":{"kind":"shown"}`, "asking decided it")
 	require.Error(t, s.Choose(context.Background(), ref, "kugou"), "a source without lyrics can't be picked")
 	require.NoError(t, s.Choose(context.Background(), ref, choices[0].Source))
 
@@ -400,7 +405,7 @@ func TestChoicesListTheLastDecision(t *testing.T) {
 		status string
 	}{
 		{"after a decision, a failing source changes nothing", true, false, false, "shown"},
-		{"no decision yet", false, false, true, "not-measured"},
+		{"no decision yet: asks and decides", false, false, true, "shown"},
 		{"hand-picked, never decided", false, true, true, "shown"},
 	}
 	for _, tt := range tests {
@@ -425,6 +430,10 @@ func TestChoicesListTheLastDecision(t *testing.T) {
 			require.Len(t, choices, 1)
 			assert.Equal(t, Choice{Source: ServerSource, Name: "Navidrome", Timing: "line", Status: Status{Kind: tt.status}}, choices[0])
 			assert.Equal(t, tt.asks, asked.Load() > 0, "asked the server")
+			asked.Store(0)
+			_, err = s.Choices(context.Background(), ref)
+			require.NoError(t, err)
+			assert.Zero(t, asked.Load(), "a second open asks nobody")
 		})
 	}
 }
@@ -1310,4 +1319,24 @@ func TestRetimedSeesABetterPick(t *testing.T) {
 			assert.Equal(t, tt.want, retimed(tt.a, tt.b))
 		})
 	}
+}
+
+// A machine with only a loopback interface still reaches a server on it.
+func TestOfflineStillAsksTheTracksServer(t *testing.T) {
+	online = func() bool { return false }
+	t.Cleanup(func() { online = func() bool { return true } })
+	var asked atomic.Int32
+	s := quietService(t, t.TempDir(), func(string, any) {}, nil)
+	s.cfg.Libraries = libs{"srv": countingLib{asked: &asked}}
+	track := source.Track{Library: "srv", ID: "song", Title: "t", Artist: "a"}
+
+	res, err := s.Lookup(context.Background(), track)
+	require.NoError(t, err)
+	assert.True(t, res.Found)
+	assert.Positive(t, asked.Load())
+
+	asked.Store(0)
+	s.client = s.newClient(t.TempDir())
+	require.NotNil(t, s.Best(context.Background(), track))
+	assert.Positive(t, asked.Load())
 }

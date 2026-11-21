@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 
+	_ "golang.org/x/image/webp"
+
 	"github.com/Conava/dux-player/core/internal/atomicfile"
 )
 
@@ -19,7 +21,7 @@ const maxColorPixels = 4096 * 4096
 
 // CoverColor is the dominant color of an image file as #rrggbb, computed
 // once per file version and kept under dir. Empty when the format can't be
-// decoded (WebP) or the image has no pixels.
+// decoded or the image has no pixels.
 func CoverColor(dir, path string) string {
 	st, err := os.Stat(path)
 	if err != nil {

@@ -27,8 +27,10 @@ const (
 	// maxItems caps how far a full listing pages.
 	maxItems = 200_000
 	ticks    = 1e7
-	// stampSkew covers a server clock that differs from ours.
-	stampSkew = time.Hour
+	// stampSkew backs a stamp up when the server sent no clock, to cover one
+	// that differs from ours; stampMargin covers the clock's resolution.
+	stampSkew   = time.Hour
+	stampMargin = time.Minute
 )
 
 // Jellyfin has favorites but no star ratings, so Source has no SetRating
@@ -732,13 +734,17 @@ func (s *Source) total(ctx context.Context, q url.Values) (int, error) {
 }
 
 // CatalogChanged asks for items saved since the stamp and compares the track
-// count, which is what shows deletions: nothing lists those. The stamp is our
-// clock and that count.
+// count, which is what shows deletions: nothing lists those. The stamp is the
+// server's own clock, from its Date header, and that count; without a header
+// it is our clock backed up by stampSkew.
 func (s *Source) CatalogChanged(ctx context.Context, stamp string) (bool, string, error) {
-	now := time.Now().UTC()
 	count, err := s.TrackCount(ctx)
 	if err != nil {
 		return false, "", err
+	}
+	now := time.Now().UTC().Add(-stampSkew)
+	if d := s.client.serverDate.Load(); d != 0 {
+		now = time.Unix(d, 0).UTC()
 	}
 	next := now.Format(time.RFC3339) + "|" + strconv.Itoa(count)
 	at, oldCount, ok := strings.Cut(stamp, "|")
@@ -747,7 +753,7 @@ func (s *Source) CatalogChanged(ctx context.Context, stamp string) (bool, string
 		return true, next, nil
 	}
 	q := musicQuery("MusicArtist,MusicAlbum,Audio")
-	q.Set("minDateLastSaved", since.Add(-stampSkew).Format(time.RFC3339))
+	q.Set("minDateLastSaved", since.Add(-stampMargin).Format(time.RFC3339))
 	saved, err := s.total(ctx, q)
 	if err != nil {
 		return false, "", err

@@ -48,6 +48,9 @@ type Client struct {
 	// refused is set once a sign-in was refused; calls fail at once, with no
 	// request, until a new token arrives or Ping looks again.
 	refused atomic.Bool
+	// serverDate is the Date header of the latest response, Unix seconds; 0
+	// before one carried it.
+	serverDate atomic.Int64
 
 	mu     sync.Mutex
 	token  string
@@ -141,6 +144,9 @@ func (c *Client) do(ctx context.Context, method, path string, q url.Values, body
 		return fmt.Errorf("%s: %w", endpointName(path), err)
 	}
 	defer resp.Body.Close()
+	if d, err := http.ParseTime(resp.Header.Get("Date")); err == nil {
+		c.serverDate.Store(d.Unix())
+	}
 	switch {
 	case resp.StatusCode == http.StatusUnauthorized:
 		return fmt.Errorf("%s: %w", endpointName(path), ErrUnauthorized)

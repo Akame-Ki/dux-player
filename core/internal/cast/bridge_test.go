@@ -317,6 +317,23 @@ func TestDiscoveryRestartsTheHelper(t *testing.T) {
 	require.Eventually(t, func() bool { b.mu.Lock(); defer b.mu.Unlock(); return b.proc != nil && b.proc != p }, 2*watchEvery, 50*time.Millisecond)
 }
 
+// Discovery ends with the last device-list subscriber, not on a poll.
+func TestDiscoveryStopsWhenTheListIsClosed(t *testing.T) {
+	b, _, _ := newBridge(t, "3")
+	watching := true
+	b.cfg.HasSubscriber = func(string) bool { return watching }
+	b.Subscribed()
+	b.mu.Lock()
+	require.True(t, b.discovering)
+	b.mu.Unlock()
+	watching = false
+	b.Subscribed()
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	assert.False(t, b.discovering)
+	assert.Nil(t, b.proc, "the helper is released")
+}
+
 // A queue cut at a stop rule reaches the receiver without looping, and when
 // the rule clears it gets the rest back and loops again.
 func TestCastQueueCutAtAStopRule(t *testing.T) {

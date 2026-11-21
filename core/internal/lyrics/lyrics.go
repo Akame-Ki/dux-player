@@ -738,8 +738,7 @@ func (s *Service) Choices(ctx context.Context, ref source.Ref) ([]Choice, error)
 	}
 	d, ok := s.lastDecision(key(&t))
 	if !ok {
-		results, loose := s.gather(ctx, s.client, t)
-		d.choices = choicesOf(append(results, loose...))
+		_, d = s.weigh(ctx, s.client, t)
 	}
 	out := make([]Choice, len(d.choices))
 	for i, c := range d.choices {
@@ -869,6 +868,7 @@ func (s *Service) Lookup(ctx context.Context, t source.Track) (*duxlyrics.Result
 	if serverID != "" {
 		sreq := req
 		sreq.Providers = []duxlyrics.Provider{serverID}
+		sreq.CacheOnly = false
 		server = ask(func() (*duxlyrics.Result, error) { return s.client.Lookup(ctx, sreq) })
 	}
 	providers := ask(func() (*duxlyrics.Result, error) {
@@ -936,15 +936,23 @@ func (s *Service) Best(ctx context.Context, t source.Track) *duxlyrics.Result {
 }
 
 func (s *Service) best(ctx context.Context, client *duxlyrics.Client, t source.Track) *duxlyrics.Result {
+	res, _ := s.weigh(ctx, client, t)
+	return res
+}
+
+// weigh is best with the decision it made, which it keeps so a later menu
+// open, or a track that found nothing, asks no source again.
+func (s *Service) weigh(ctx context.Context, client *duxlyrics.Client, t source.Track) (*duxlyrics.Result, decision) {
 	results, loose := s.gather(ctx, client, t)
 	if len(results)+len(loose) == 0 {
-		return nil
+		return nil, decision{}
 	}
 	res, notes := decide(s.providers.enabled(), results, loose, s.recording(ctx, t))
+	d := decision{key: key(&t), choices: choicesOf(append(results, loose...)), notes: notes}
 	if ctx.Err() == nil {
-		s.noteDecision(decision{key: key(&t), choices: choicesOf(append(results, loose...)), notes: notes})
+		s.noteDecision(d)
 	}
-	return res
+	return res, d
 }
 
 // trackFits measures t's answers against its local copy, decoded at most
@@ -1187,6 +1195,10 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 	if serverID != "" {
 		ids = append(ids, serverID)
 	}
+	if len(req.Providers) == 0 && req.FileURL != "" {
+		// each provider's lookup reads the lyrics file too; without one nothing would
+		ids = append(ids, duxlyrics.Sidecar)
+	}
 	results = make([]*duxlyrics.Result, len(ids))
 	loose = make([]*duxlyrics.Result, len(ids))
 	var wg sync.WaitGroup
@@ -1196,12 +1208,16 @@ func (s *Service) gather(ctx context.Context, client *duxlyrics.Client, t source
 			defer wg.Done()
 			one := req
 			one.Providers = []duxlyrics.Provider{id}
+			if id == duxlyrics.Sidecar {
+				one.Providers = []duxlyrics.Provider{}
+			}
 			if id == serverID {
 				one.FileURL = ""
+				one.CacheOnly = false
 			}
 			var res *duxlyrics.Result
 			var err error
-			if id == serverID {
+			if id == serverID || id == duxlyrics.Sidecar {
 				res, err = client.Lookup(ctx, one)
 			} else {
 				res, loose[i], err = find(ctx, client, one, t.Album, true)

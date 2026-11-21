@@ -44,8 +44,7 @@ const (
 	// this close to the end of it.
 	runOutSlack  = 5.0
 	readyTimeout = 5 * time.Second
-	// While discovering, this often the daemon checks that someone still
-	// looks at the device list, and restarts a helper that went away.
+	// A helper that exits while the device list shows is restarted after this.
 	watchEvery = 3 * time.Second
 )
 
@@ -242,9 +241,12 @@ func (b *Bridge) onEvent(p *proc, ev event) {
 			ranOut = b.stopEntryLocked(b.sess)
 		}
 	case "exit":
-		// discovering stays set: watchDiscovery restarts the helper while
-		// the device list is still on screen.
+		// discovering stays set: the helper comes back while the device
+		// list is still on screen.
 		b.proc = nil
+		if b.discovering {
+			time.AfterFunc(watchEvery, b.reviveDiscovery)
+		}
 		select {
 		case <-b.ready:
 		default:
@@ -586,52 +588,39 @@ func (b *Bridge) Status() Status {
 	return st
 }
 
-// Subscribed runs after every subscribe: discovery starts when someone
-// subscribes to TopicDevices, and new subscribers get the status.
+// Subscribed runs after every subscription change: discovery runs while a
+// client subscribes to TopicDevices, and new subscribers get the status.
 func (b *Bridge) Subscribed() {
 	b.cfg.Publish(Topic, b.Status())
-	if !b.cfg.HasSubscriber(TopicDevices) {
-		return
+	watching := b.cfg.HasSubscriber(TopicDevices)
+	if watching {
+		b.cfg.Publish(TopicDevices, b.Devices())
 	}
-	b.cfg.Publish(TopicDevices, b.Devices())
 	b.mu.Lock()
 	defer b.mu.Unlock()
-	if b.discovering {
-		return
-	}
-	if err := b.ensure(); err != nil {
-		return
-	}
-	b.discovering = true
-	if b.protocol >= minProtocol {
-		b.send(map[string]any{"cmd": "discover", "on": true})
-	}
-	go b.watchDiscovery()
-}
-
-func (b *Bridge) watchDiscovery() {
-	t := time.NewTicker(watchEvery)
-	defer t.Stop()
-	for {
-		select {
-		case <-b.cfg.Ctx.Done():
-			return
-		case <-t.C:
-		}
-		b.mu.Lock()
-		if b.cfg.HasSubscriber(TopicDevices) {
-			if b.proc == nil {
-				// The helper went away; "check" turns discovery back on.
-				_ = b.ensure()
-			}
-			b.mu.Unlock()
-			continue
-		}
+	switch {
+	case !watching && b.discovering:
 		b.discovering = false
 		b.send(map[string]any{"cmd": "discover", "on": false})
 		b.releaseIfIdle()
-		b.mu.Unlock()
-		return
+	case watching && !b.discovering:
+		if err := b.ensure(); err != nil {
+			return
+		}
+		b.discovering = true
+		if b.protocol >= minProtocol {
+			b.send(map[string]any{"cmd": "discover", "on": true})
+		}
+	}
+}
+
+// reviveDiscovery restarts a helper that exited while the device list shows;
+// its "check" turns discovery back on.
+func (b *Bridge) reviveDiscovery() {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+	if b.discovering && b.proc == nil && b.cfg.HasSubscriber(TopicDevices) {
+		_ = b.ensure()
 	}
 }
 

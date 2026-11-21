@@ -175,6 +175,10 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 	// lastWrite closes when the latest write has been answered.
 	lastWrite := make(chan struct{})
 	close(lastWrite)
+	// slots bounds the goroutines of a connection; at the limit the loop stops
+	// reading, so a flood waits in the socket buffer. Each slot's request only
+	// waits for earlier ones, which hold slots of their own, so none starves.
+	slots := make(chan struct{}, maxInFlight)
 	sc := bufio.NewScanner(c)
 	sc.Buffer(make([]byte, 64<<10), maxRequestLine)
 	for sc.Scan() {
@@ -183,9 +187,15 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 			w.RespondError(0, "invalid json: "+err.Error())
 			continue
 		}
+		select {
+		case slots <- struct{}{}:
+		case <-ctx.Done():
+			return
+		}
 		after := lastWrite
 		if s.reg.isRead(req.Method) {
 			go func() {
+				defer func() { <-slots }()
 				<-after
 				s.dispatch(ctx, q, w, req, sub)
 			}()
@@ -194,6 +204,7 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 		done := make(chan struct{})
 		lastWrite = done
 		go func() {
+			defer func() { <-slots }()
 			defer close(done)
 			<-after
 			s.dispatch(ctx, q, w, req, sub)
@@ -204,7 +215,11 @@ func (s *Server) serveConn(ctx context.Context, c net.Conn) {
 	}
 }
 
-const maxRequestLine = 1 << 20
+const (
+	maxRequestLine = 1 << 20
+	// maxInFlight is how many requests of one connection run or wait at once.
+	maxInFlight = 64
+)
 
 func (s *Server) dispatch(ctx context.Context, q *queuedConn, w *ConnWriter, req Request, sub *Subscriber) {
 	rc := &replyConn{Conn: q, method: req.Method}

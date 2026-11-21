@@ -23,12 +23,20 @@ import (
 // catalogSource talks to answer for every /Users/{user}/Items request and
 // records the queries.
 func catalogSource(t *testing.T, answer func(q url.Values) string) (*Source, func() []url.Values) {
+	return catalogSourceAt(t, "", answer)
+}
+
+// catalogSourceAt sends date as the server's clock when it isn't empty.
+func catalogSourceAt(t *testing.T, date string, answer func(q url.Values) string) (*Source, func() []url.Values) {
 	var mu sync.Mutex
 	var seen []url.Values
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		mu.Lock()
 		seen = append(seen, r.URL.Query())
 		mu.Unlock()
+		if date != "" {
+			w.Header().Set("Date", date)
+		}
 		_, _ = w.Write([]byte(answer(r.URL.Query())))
 	}))
 	t.Cleanup(srv.Close)
@@ -112,14 +120,23 @@ func TestCatalogChanged(t *testing.T) {
 	}
 }
 
-// The date asked for reaches back past the stamp: the server's clock isn't
-// ours.
-func TestCatalogChangedAllowsForClockSkew(t *testing.T) {
-	at := time.Date(2026, 1, 2, 12, 0, 0, 0, time.UTC)
-	s, queries := catalogSource(t, func(url.Values) string { return `{"Items":[],"TotalRecordCount":3}` })
-	_, _, err := s.CatalogChanged(context.Background(), at.Format(time.RFC3339)+"|3")
+// The stamp is the server's clock, so a save is seen once and not for an hour
+// after it; the date asked for reaches back only a minute.
+func TestCatalogChangedStampsTheServerClock(t *testing.T) {
+	s, queries := catalogSourceAt(t, "Fri, 02 Jan 2026 15:04:05 GMT", func(q url.Values) string {
+		if q.Get("minDateLastSaved") != "" {
+			return `{"Items":[],"TotalRecordCount":0}`
+		}
+		return `{"Items":[],"TotalRecordCount":3}`
+	})
+	_, next, err := s.CatalogChanged(context.Background(), "")
 	require.NoError(t, err)
-	assert.Equal(t, "2026-01-02T11:00:00Z", queries()[1].Get("minDateLastSaved"))
+	assert.Equal(t, "2026-01-02T15:04:05Z|3", next)
+
+	changed, _, err := s.CatalogChanged(context.Background(), next)
+	require.NoError(t, err)
+	assert.False(t, changed)
+	assert.Equal(t, "2026-01-02T15:03:05Z", queries()[2].Get("minDateLastSaved"))
 }
 
 func TestRecentPlaysIsOneRequest(t *testing.T) {

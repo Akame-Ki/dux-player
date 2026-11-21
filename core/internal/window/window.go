@@ -109,7 +109,7 @@ func (l *Launcher) Start(dir string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	logFile, err := OpenLog(l.cfg.LogPath)
+	logFile, err := newRotatingLog(l.cfg.LogPath, maxLog)
 	if err != nil {
 		return false, err
 	}
@@ -146,9 +146,74 @@ func (l *Launcher) Start(dir string) (bool, error) {
 	return true, nil
 }
 
-// maxLog is where a log is rotated: at open, a bigger one becomes .1 (the
-// previous .1 is dropped).
+// maxLog is where a log is rotated: a bigger one becomes .1 (the previous
+// .1 is dropped), at open and, for the UI's log, while it runs.
 const maxLog = 2 << 20
+
+// rotatingLog is the UI's log: writes go through this process (not straight
+// to the file) so the file can be swapped when it passes limit.
+type rotatingLog struct {
+	mu    sync.Mutex
+	path  string
+	limit int64
+	f     *os.File
+	size  int64
+}
+
+func newRotatingLog(path string, limit int64) (*rotatingLog, error) {
+	r := &rotatingLog{path: path, limit: limit}
+	if err := r.open(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func (r *rotatingLog) open() error {
+	f, err := OpenLog(r.path)
+	if err != nil {
+		return err
+	}
+	info, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return err
+	}
+	r.f, r.size = f, info.Size()
+	return nil
+}
+
+func (r *rotatingLog) Write(p []byte) (int, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	if r.size > 0 && r.size+int64(len(p)) > r.limit {
+		// On failure the old file stays open and keeps taking output.
+		if err := r.rotate(); err != nil {
+			log.Warnf("ui log: can't rotate %s: %v", r.path, err)
+		}
+	}
+	n, err := r.f.Write(p)
+	r.size += int64(n)
+	return n, err
+}
+
+func (r *rotatingLog) rotate() error {
+	if err := os.Rename(r.path, r.path+".1"); err != nil {
+		return err
+	}
+	f, err := os.OpenFile(r.path, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0o600)
+	if err != nil {
+		return err
+	}
+	r.f.Close()
+	r.f, r.size = f, 0
+	return nil
+}
+
+func (r *rotatingLog) Close() error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	return r.f.Close()
+}
 
 // OpenLog opens a log for appending, rotated once past maxLog.
 func OpenLog(path string) (*os.File, error) {

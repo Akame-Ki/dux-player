@@ -8,12 +8,20 @@ import (
 	"net"
 	"os"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/Conava/dux-player/core/internal/testenv"
 )
+
+func TestMain(m *testing.M) {
+	testenv.ShortTempDir()
+	os.Exit(m.Run())
+}
 
 // Writes on one connection take effect in the order they were sent, a read
 // sees the writes sent before it, and a slow read holds up nothing.
@@ -155,4 +163,54 @@ func TestUnencodableReplyIsAnError(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 3, resp.ID)
 	assert.NotEmpty(t, resp.Error)
+}
+
+// A client that sends more requests than maxInFlight allowed never has more
+// of them running at once, and every one is still answered.
+func TestConnectionRequestsAreBounded(t *testing.T) {
+	dir, err := os.MkdirTemp("", "dpb")
+	require.NoError(t, err)
+	t.Cleanup(func() { os.RemoveAll(dir) })
+	t.Setenv("XDG_RUNTIME_DIR", dir)
+
+	var running, peak atomic.Int32
+	release := make(chan struct{})
+	r := NewRegistry()
+	r.Group("t", func(_ context.Context, w *ConnWriter, req Request) {
+		n := running.Add(1)
+		defer running.Add(-1)
+		for {
+			p := peak.Load()
+			if n <= p || peak.CompareAndSwap(p, n) {
+				break
+			}
+		}
+		<-release
+		w.Respond(req.ID, true)
+	}, MethodSpec{Name: "t.read", Read: true})
+	srv := NewServer(r, NewBus())
+	require.NoError(t, srv.Listen())
+	ctx, cancel := context.WithCancel(context.Background())
+	t.Cleanup(cancel)
+	go func() { _ = srv.Serve(ctx) }()
+
+	c, err := net.Dial("unix", srv.SocketPath())
+	require.NoError(t, err)
+	defer c.Close()
+	rd := bufio.NewScanner(c)
+	require.True(t, rd.Scan(), "handshake")
+	const total = maxInFlight * 3
+	go func() {
+		for i := 1; i <= total; i++ {
+			line, _ := json.Marshal(Request{ID: i, Method: "t.read"})
+			_, _ = c.Write(append(line, '\n'))
+		}
+	}()
+	require.Eventually(t, func() bool { return running.Load() == maxInFlight }, 5*time.Second, 5*time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
+	assert.EqualValues(t, maxInFlight, peak.Load())
+	close(release)
+	for range total {
+		require.True(t, rd.Scan())
+	}
 }
