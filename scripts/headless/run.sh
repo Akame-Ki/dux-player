@@ -192,10 +192,14 @@ cat >>"$W/tree/shell.qml" <<'Q'
             frameProbe.target = frameProbe.window();
             frameProbe.target.frameSwapped.connect(frameProbe, frameProbe.swapped);
         }
-        function trackStop(): string {
+        // the number of samples; trackLines reads them in pages, since the runtime's IPC server drops a reply of more than about 200 kB
+        function trackStop(): int {
             frameProbe.target.frameSwapped.disconnect(frameProbe, frameProbe.swapped);
             frameProbe.tracked = null;
-            return frameProbe.samples.join("\n");
+            return frameProbe.samples.length;
+        }
+        function trackLines(from: int, count: int): string {
+            return frameProbe.samples.slice(from, from + count).join("\n");
         }
         // the bar in window coordinates: x y width height
         function barRect(): string {
