@@ -338,12 +338,21 @@ Item {
                         }
 
                         DFlickable {
+                            id: menuScroll
                             anchors.fill: parent
                             anchors.margins: root.padding
                             contentWidth: width
                             contentHeight: items.implicitHeight
                             fadeEdges: false
                             clip: true
+
+                            // a menu taller than its window scrolls: the highlighted entry stays in view
+                            readonly property int highlighted: root.highlightIndex
+                            onHighlightedChanged: {
+                                const row = highlighted >= 0 ? rows.itemAt(highlighted) : null;
+                                if (row)
+                                    revealRange(row.y, row.y + row.height);
+                            }
 
                             Column {
                                 id: items

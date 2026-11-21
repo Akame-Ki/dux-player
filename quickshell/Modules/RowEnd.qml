@@ -35,7 +35,7 @@ Row {
     readonly property bool header: timeHeader !== null
     readonly property bool pointerInside: endHover.hovered
     readonly property var slots: (UiConfig.item(actions.type)?.zones.trailing ?? []).filter(i => !i.hidden && UiConfig.isKnown(i.type) && !(narrow && (infoSlots.indexOf(i.type) >= 0 || (i.type === "favorite" || i.type === "addToPlaylist") && menuTypes.indexOf(i.type) >= 0)))
-    readonly property var infoSlots: ["library", "cloud", "duration", "addedByYou"]
+    readonly property var infoSlots: ["rating", "library", "cloud", "duration", "addedByYou"]
     readonly property string favoriteKind: actions.type === "queue" ? "track" : actions.type
     readonly property bool remote: PlayerService.isRemote(item?.library ?? "")
     readonly property bool serverDown: remote && PlayerService.library(item?.library ?? "")?.available === false

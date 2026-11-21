@@ -31,6 +31,9 @@ Item {
     layer.enabled: true
     layer.smooth: true
     layer.effect: ShaderEffect {
+        // the layer sets this before the shader's own sampler property exists
+        property var source
+
         readonly property real morph: root.shape === "circle" ? 0 : Math.max(0, Math.min(1, root.morph))
         readonly property real spinAngle: root.spin
         readonly property real sizePx: root.width

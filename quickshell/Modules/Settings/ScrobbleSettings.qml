@@ -186,6 +186,14 @@ SettingsPage {
                 }
 
                 DButton {
+                    visible: root.builtIn && root.ownKey
+                    text: I18n.tr("Use built-in key", "Last.fm sign-in action")
+                    backgroundColor: "transparent"
+                    textColor: Theme.primary
+                    onClicked: root.ownKey = false
+                }
+
+                DButton {
                     id: connectLastfm
                     text: root.builtIn && !root.ownKey ? I18n.tr("Connect", "Last.fm sign-in action") : I18n.tr("Sign in", "scrobbling account action")
                     reserveText: root.builtIn && !root.ownKey ? I18n.tr("Sign in", "scrobbling account action") : I18n.tr("Connect", "Last.fm sign-in action")

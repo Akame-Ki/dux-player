@@ -373,6 +373,8 @@ FocusScope {
             onActivated: {
                 root.following = true;
                 root.forceActiveFocus(Qt.MouseFocusReason);
+                // the centre line may be the one clicked, so nothing else would scroll back
+                root.requestFollow(true);
                 if (line.item.kind === "break")
                     root.controller.seekToTime(line.item.t);
                 else

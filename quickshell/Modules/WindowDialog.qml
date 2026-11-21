@@ -44,6 +44,9 @@ DDialog {
             parent = null;
     }
 
+    // a window's Shortcut fires before the focused item, so without this its keys (Ctrl+Space, Ctrl+A) act behind the dialog
+    Keys.onShortcutOverride: event => event.accepted = opened
+
     readonly property EscapeLayer _escapeLayer: EscapeLayer {
         owner: root
         active: root.opened
